@@ -31,6 +31,11 @@ class VendorProfile(models.Model):
     address = models.TextField() 
     business_type = models.CharField(max_length=20, choices=BUSINESS_CHOICES)
     
+    # Independent Contact Information
+    contact_name = models.CharField(max_length=100, blank=True, null=True)
+    contact_email = models.EmailField(blank=True, null=True)
+    contact_phone = models.CharField(max_length=15, blank=True, null=True)
+    
     # Legacy fields
     id_type = models.CharField(max_length=10, choices=ID_PROOF_CHOICES, blank=True, null=True)
     id_number = models.CharField(max_length=50, blank=True, null=True)
@@ -42,12 +47,21 @@ class VendorProfile(models.Model):
     pan_name = models.CharField(max_length=100, blank=True, null=True)
     pan_card_file = models.FileField(upload_to='pan_cards/', blank=True, null=True)
     
+    # Additional documents uploaded during registration
+    additional_documents = models.FileField(upload_to='vendor_additional_docs/', blank=True, null=True)
+    selfie_with_id = models.ImageField(upload_to='vendor_selfies/', blank=True, null=True)
+    
     approval_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='pending')
     rejection_reason = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     is_blocked = models.BooleanField(default=False)
     blocked_reason = models.TextField(blank=True, null=True)
+    
+    # Account Deletion Request
+    is_deletion_requested = models.BooleanField(default=False)
+    deletion_reason = models.TextField(blank=True, null=True)
+    deletion_requested_at = models.DateTimeField(null=True, blank=True)
     
     # Bank Details
     bank_holder_name = models.CharField(max_length=100, blank=True, null=True)
@@ -124,7 +138,9 @@ class Product(models.Model):
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='products/')
+    image_data = models.BinaryField(null=True, blank=True)
+    image_mimetype = models.CharField(max_length=50, null=True, blank=True)
+    image_filename = models.CharField(max_length=255, null=True, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -30,13 +30,35 @@ class DeliveryAssignmentListSerializer(serializers.ModelSerializer):
     agent_name = serializers.CharField(source='agent.user.get_full_name', read_only=True)
     order_id = serializers.CharField(source='order.id', read_only=True)
     customer_name = serializers.CharField(source='order.user.get_full_name', read_only=True)
+    estimated_delivery_date = serializers.SerializerMethodField()
+    pickup_time = serializers.DateTimeField(read_only=True)
+    delivery_time = serializers.DateTimeField(read_only=True)
+    assigned_at = serializers.DateTimeField(read_only=True)
+
+    def get_estimated_delivery_date(self, obj):
+        if not obj.estimated_delivery_date: return None
+        if hasattr(obj.estimated_delivery_date, 'date'):
+            return obj.estimated_delivery_date.date()
+        return obj.estimated_delivery_date
+    items = serializers.SerializerMethodField()
+    
+    def get_items(self, obj):
+        return [
+            {
+                'product_name': item.product_name,
+                'quantity': item.quantity,
+                'price': str(item.product_price)
+            } for item in obj.order.items.all()
+        ]
     
     class Meta:
         model = DeliveryAssignment
         fields = [
             'id', 'agent_name', 'order_id', 'customer_name',
-            'delivery_city', 'status', 'estimated_delivery_date',
-            'pickup_time', 'delivery_time', 'delivery_fee', 'assigned_at'
+            'delivery_city', 'delivery_address', 'pickup_address',
+            'status', 'estimated_delivery_date',
+            'pickup_time', 'delivery_time', 'delivery_fee', 'assigned_at',
+            'items', 'failure_reason'
         ]
         read_only_fields = ['id', 'assigned_at']
 
@@ -46,6 +68,20 @@ class DeliveryAssignmentDetailSerializer(serializers.ModelSerializer):
     agent = serializers.SerializerMethodField()
     order_details = serializers.SerializerMethodField()
     tracking_history = DeliveryTrackingSerializer(many=True, read_only=True)
+    
+    estimated_delivery_date = serializers.SerializerMethodField()
+    assigned_at = serializers.DateTimeField(read_only=True)
+    accepted_at = serializers.DateTimeField(read_only=True)
+    started_at = serializers.DateTimeField(read_only=True)
+    completed_at = serializers.DateTimeField(read_only=True)
+    pickup_time = serializers.DateTimeField(read_only=True)
+    delivery_time = serializers.DateTimeField(read_only=True)
+
+    def get_estimated_delivery_date(self, obj):
+        if not obj.estimated_delivery_date: return None
+        if hasattr(obj.estimated_delivery_date, 'date'):
+            return obj.estimated_delivery_date.date()
+        return obj.estimated_delivery_date
     
     class Meta:
         model = DeliveryAssignment
@@ -58,7 +94,7 @@ class DeliveryAssignmentDetailSerializer(serializers.ModelSerializer):
             'delivery_fee', 'customer_contact', 'agent_contact_allowed',
             'assigned_at', 'accepted_at', 'started_at', 'completed_at',
             'signature_image', 'delivery_photo', 'otp_verified',
-            'tracking_history'
+            'tracking_history', 'failure_reason'
         ]
         read_only_fields = [
             'id', 'assigned_at', 'accepted_at', 'started_at', 'completed_at',
@@ -101,6 +137,7 @@ class DeliveryAssignmentCreateSerializer(serializers.ModelSerializer):
 
 class DeliveryFeedbackSerializer(serializers.ModelSerializer):
     agent_name = serializers.CharField(source='agent.user.get_full_name', read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
     
     class Meta:
         model = DeliveryFeedback
@@ -119,11 +156,14 @@ class DeliveryFeedbackSerializer(serializers.ModelSerializer):
 
 class DeliveryCommissionSerializer(serializers.ModelSerializer):
     agent_name = serializers.CharField(source='agent.user.get_full_name', read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+    approved_at = serializers.DateTimeField(read_only=True)
+    paid_at = serializers.DateTimeField(read_only=True)
     
     class Meta:
         model = DeliveryCommission
         fields = [
-            'id', 'agent_name', 'base_fee', 'distance_bonus', 'time_bonus',
+            'id', 'delivery_assignment', 'agent_name', 'base_fee', 'distance_bonus', 'time_bonus',
             'rating_bonus', 'deductions', 'total_commission', 'status',
             'notes', 'created_at', 'approved_at', 'paid_at'
         ]
@@ -137,6 +177,24 @@ class DeliveryCommissionSerializer(serializers.ModelSerializer):
 # ===============================================
 
 class DeliveryPaymentSerializer(serializers.ModelSerializer):
+    from_date = serializers.SerializerMethodField()
+    to_date = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(read_only=True)
+    processed_at = serializers.DateTimeField(read_only=True)
+    completed_at = serializers.DateTimeField(read_only=True)
+
+    def get_from_date(self, obj):
+        if not obj.from_date: return None
+        if hasattr(obj.from_date, 'date'):
+            return obj.from_date.date()
+        return obj.from_date
+
+    def get_to_date(self, obj):
+        if not obj.to_date: return None
+        if hasattr(obj.to_date, 'date'):
+            return obj.to_date.date()
+        return obj.to_date
+    
     class Meta:
         model = DeliveryPayment
         fields = [
@@ -154,6 +212,14 @@ class DeliveryPaymentSerializer(serializers.ModelSerializer):
 # ===============================================
 
 class DeliveryDailyStatsSerializer(serializers.ModelSerializer):
+    date = serializers.SerializerMethodField()
+    
+    def get_date(self, obj):
+        if not obj.date: return None
+        if hasattr(obj.date, 'date'):
+            return obj.date.date()
+        return obj.date
+    
     class Meta:
         model = DeliveryDailyStats
         fields = [
@@ -178,6 +244,7 @@ class DeliveryAgentProfileListSerializer(serializers.ModelSerializer):
     """Delivery agent listing serializer"""
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
     user_email = serializers.CharField(source='user.email', read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
     
     class Meta:
         model = DeliveryAgentProfile
@@ -196,20 +263,41 @@ class DeliveryAgentProfileListSerializer(serializers.ModelSerializer):
 class DeliveryAgentProfileDetailSerializer(serializers.ModelSerializer):
     """Detailed delivery agent profile serializer"""
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
     user_email = serializers.CharField(source='user.email', read_only=True)
     pending_commission = serializers.SerializerMethodField()
     active_orders = serializers.SerializerMethodField()
+    date_of_birth = serializers.SerializerMethodField()
+    license_expires = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
+    approved_at = serializers.DateTimeField(read_only=True)
+    last_online = serializers.DateTimeField(read_only=True)
+
+    def get_date_of_birth(self, obj):
+        if not obj.date_of_birth: return None
+        if hasattr(obj.date_of_birth, 'date'):
+            return obj.date_of_birth.date()
+        return obj.date_of_birth
+
+    def get_license_expires(self, obj):
+        if not obj.license_expires: return None
+        if hasattr(obj.license_expires, 'date'):
+            return obj.license_expires.date()
+        return obj.license_expires
     
     class Meta:
         model = DeliveryAgentProfile
         fields = [
-            'id', 'user_name', 'user_email', 'phone_number', 'date_of_birth',
+            'id', 'user_name', 'username', 'user_email', 'phone_number', 'date_of_birth',
             'address', 'city', 'state', 'postal_code', 'vehicle_type',
             'vehicle_number', 'license_number', 'license_expires', 'id_type',
-            'id_number', 'bank_holder_name', 'bank_account_number',
+            'id_number', 'id_proof_file', 'pan_number', 'pan_card_file', 'aadhar_number', 'aadhar_card_file',
+            'license_file', 'selfie_with_id', 'additional_documents', 'vehicle_registration', 'vehicle_insurance',
+            'bank_holder_name', 'bank_account_number',
             'bank_ifsc_code', 'bank_name', 'approval_status', 'rejection_reason',
             'availability_status', 'is_active', 'is_blocked', 'blocked_reason',
-            'service_cities', 'preferred_delivery_radius', 'working_hours_start',
+            'latitude', 'longitude', 'service_cities', 'service_pincodes', 'preferred_delivery_radius', 'working_hours_start',
             'working_hours_end', 'total_deliveries', 'completed_deliveries',
             'cancelled_deliveries', 'average_rating', 'total_reviews',
             'total_earnings', 'pending_commission', 'active_orders',
@@ -238,9 +326,12 @@ class DeliveryAgentProfileCreateSerializer(serializers.ModelSerializer):
         fields = [
             'phone_number', 'date_of_birth', 'address', 'city', 'state',
             'postal_code', 'vehicle_type', 'vehicle_number', 'license_number',
-            'license_expires', 'id_type', 'id_number', 'bank_holder_name',
-            'bank_account_number', 'bank_ifsc_code', 'bank_name',
-            'service_cities', 'preferred_delivery_radius', 'password',
+            'license_expires', 'license_file', 'id_type', 'id_number', 'id_proof_file',
+            'pan_number', 'pan_card_file', 'aadhar_number', 'aadhar_card_file',
+            'additional_documents', 'selfie_with_id',
+            'bank_holder_name', 'bank_account_number', 'bank_ifsc_code', 'bank_name',
+            'latitude', 'longitude',
+            'service_cities', 'service_pincodes', 'preferred_delivery_radius', 'password',
             'password_confirm'
         ]
         extra_kwargs = {
@@ -302,6 +393,10 @@ class DeliveryAgentProfileCreateSerializer(serializers.ModelSerializer):
         email = validated_data.pop('email')
         phone_number = validated_data.get('phone_number')
         
+        # Get files from context (if they were passed as multipart/form-data)
+        request = self.context.get('request')
+        files = request.FILES if request else {}
+
         # Generator for unique dummy license if missing or empty
         import time
         import random
@@ -407,7 +502,7 @@ class DeliveryAgentDashboardSerializer(serializers.Serializer):
         """Get currently active delivery assignments"""
         active = DeliveryAssignment.objects.filter(
             agent=obj,
-            status__in=['assigned', 'accepted', 'picked_up', 'in_transit']
+            status__in=['assigned', 'accepted', 'picked_up', 'in_transit', 'arrived']
         ).order_by('-assigned_at')[:5]
         return DeliveryAssignmentListSerializer(active, many=True).data
     
@@ -426,7 +521,15 @@ class DeliveryAgentDashboardSerializer(serializers.Serializer):
         return {
             'total_deliveries_assigned': 0,
             'total_deliveries_completed': 0,
+            'total_deliveries_failed': 0,
+            'total_hours_worked': '0.00',
+            'average_delivery_time': '0.00',
+            'total_distance': '0.00',
+            'average_distance_per_delivery': '0.00',
             'total_earnings': '0.00',
+            'total_bonus': '0.00',
+            'customer_ratings_received': 0,
+            'average_rating': '0.00',
         }
     
     def get_recent_feedback(self, obj):

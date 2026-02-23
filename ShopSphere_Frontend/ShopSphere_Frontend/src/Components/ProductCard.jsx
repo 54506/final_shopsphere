@@ -13,11 +13,11 @@ export default function ProductCard({
 
     // Prepare gallery from item.images or item.gallery
     const gallery = (item.images || item.gallery || []).map(img => {
-        const imgPath = typeof img === 'string' ? img : img.image;
+        let imgPath = typeof img === 'string' ? img : (img.image || img.url);
+        if (!imgPath) return "/public/placeholder.jpg";
         if (imgPath.startsWith('http')) return imgPath;
-        if (imgPath.startsWith('/media/')) return `http://127.0.0.1:8000${imgPath}`;
-        if (imgPath.startsWith('media/')) return `http://127.0.0.1:8000/${imgPath}`;
-        return `http://127.0.0.1:8000/media/${imgPath}`;
+        if (imgPath.startsWith('/')) return `http://127.0.0.1:8000${imgPath}`;
+        return `http://127.0.0.1:8000/${imgPath}`;
     });
 
     // Fallback image

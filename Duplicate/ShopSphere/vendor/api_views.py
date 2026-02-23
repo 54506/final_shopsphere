@@ -6,12 +6,16 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, get_user_model
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse
 from .models import VendorProfile, Product, ProductImage
 from .serializers import (
     UserSerializer, UserRegistrationSerializer, LoginSerializer,
     VendorProfileSerializer, VendorRegistrationSerializer,
-    ProductSerializer, ProductCreateUpdateSerializer, ProductListSerializer
+    ProductSerializer, ProductCreateUpdateSerializer, ProductListSerializer,
+    VendorOrderItemSerializer, VendorOrderItemStatusUpdateSerializer
 )
+from django.template.loader import render_to_string
+from user.models import Order, OrderItem, Address
 
 User = get_user_model()
 
@@ -200,6 +204,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     """CRUD operations for products"""
     permission_classes = [IsAuthenticated]
     queryset = Product.objects.all()
+    pagination_class = None
     
     def get_queryset(self):
         try:
@@ -247,7 +252,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         for image in images:
             ProductImage.objects.create(
                 product=product,
-                image=image
+                image_data=image.read(),
+                image_mimetype=image.content_type,
+                image_filename=image.name
             )
 
         return Response(
@@ -306,7 +313,9 @@ class ProductViewSet(viewsets.ModelViewSet):
             for image in images:
                 ProductImage.objects.create(
                     product=product,
-                    image=image
+                    image_data=image.read(),
+                    image_mimetype=image.content_type,
+                    image_filename=image.name
                 )
 
         return Response(ProductSerializer(product).data)
@@ -377,3 +386,116 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     
     def get_object(self):
         return self.request.user
+
+
+class VendorOrderListView(generics.ListAPIView):
+    """List orders containing products from the current vendor"""
+    permission_classes = [IsAuthenticated]
+    serializer_class = VendorOrderItemSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        vendor = get_object_or_404(VendorProfile, user=self.request.user)
+        return OrderItem.objects.filter(vendor=vendor)
+
+
+class VendorOrderItemUpdateView(generics.UpdateAPIView):
+    """Update the status of an order item by the vendor"""
+    permission_classes = [IsAuthenticated]
+    serializer_class = VendorOrderItemStatusUpdateSerializer
+
+    def get_queryset(self):
+        vendor = get_object_or_404(VendorProfile, user=self.request.user)
+        return OrderItem.objects.filter(vendor=vendor)
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if instance.vendor_status == 'shipped':
+            # Note: We removed the auto_assign_order trigger here because 
+            # the admin now wants to handle assignments manually.
+            
+            # Update overall order status to 'shipping' if it's currently pending or confirmed
+            order = instance.order
+            if order.status in ['pending', 'confirmed']:
+                order.status = 'shipping'
+                order.save(update_fields=['status'])
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from django.http import HttpResponse
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def serve_product_image(request, image_id):
+    """
+    Serve product image directly from BinaryField in the database.
+    Only fetches from DB; fallback to file is removed.
+    """
+    product_image = get_object_or_404(ProductImage, id=image_id)
+    
+    if not product_image.image_data:
+        return Response({'error': 'Image data not found in database'}, status=status.HTTP_404_NOT_FOUND)
+    
+    return HttpResponse(
+        product_image.image_data,
+        content_type=product_image.image_mimetype or 'image/jpeg'
+    )
+
+
+class VendorInvoiceAPIView(generics.GenericAPIView):
+    """API endpoint to get vendor invoice (HTML)"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, order_number):
+        vendor = get_object_or_404(VendorProfile, user=request.user)
+        order = get_object_or_404(Order, order_number=order_number)
+        
+        # Fallback for missing delivery address
+        if not order.delivery_address:
+            order.delivery_address = Address.objects.filter(user=order.user, is_default=True).first() or \
+                                   Address.objects.filter(user=order.user).first()
+        
+        items = OrderItem.objects.filter(order=order, vendor=vendor)
+        vendor_subtotal = sum(item.subtotal for item in items)
+        
+        context = {
+            'vendor': vendor,
+            'order': order,
+            'items': items,
+            'vendor_subtotal': vendor_subtotal
+        }
+        
+        html = render_to_string('invoice_vendor_order.html', context)
+        return HttpResponse(html)
+
+
+class VendorCommissionInvoiceAPIView(generics.GenericAPIView):
+    """API endpoint to get vendor commission invoice (HTML)"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, order_number):
+        vendor = get_object_or_404(VendorProfile, user=request.user)
+        order = get_object_or_404(Order, order_number=order_number)
+        
+        # Fallback for missing delivery address
+        if not order.delivery_address:
+            order.delivery_address = Address.objects.filter(user=order.user, is_default=True).first() or \
+                                   Address.objects.filter(user=order.user).first()
+        
+        items = OrderItem.objects.filter(order=order, vendor=vendor)
+        vendor_subtotal = sum(item.subtotal for item in items)
+        total_commission = sum(item.commission_amount for item in items)
+        net_earnings = vendor_subtotal - total_commission
+        
+        context = {
+            'vendor': vendor,
+            'order': order,
+            'items': items,
+            'vendor_subtotal': vendor_subtotal,
+            'total_commission': total_commission,
+            'net_earnings': net_earnings
+        }
+        
+        html = render_to_string('invoice_vendor_commission.html', context)
+        return HttpResponse(html)

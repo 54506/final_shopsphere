@@ -1,253 +1,298 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Search,
     Filter,
-    Eye,
     Store,
     PanelLeftClose,
     PanelLeftOpen,
     ChevronDown,
-    Package
+    ChevronLeft,
+    ChevronRight,
+    Package,
+    ArrowUpRight,
+    Activity,
+    Box,
+    X,
+    MoreVertical
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
-
 import { useProducts } from '../context/ProductContext';
+import { useTheme } from '../context/ThemeContext';
+import NotificationBell from '../components/NotificationBell';
+
+const DEBOUNCE_MS = 400;
 
 const ProductManagement = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { products, updateProductStatus } = useProducts();
-    const [isLoading, setIsLoading] = useState(true);
-
-    // Read search term from navigation state (e.g., from Vendor Details)
-    const [searchTerm, setSearchTerm] = useState(location.state?.searchTerm || '');
-
-    const [vendorFilter, setVendorFilter] = useState('All Vendors');
-
-    // Read status from dashboard navigation state
-    const initialStatus = location.state?.status || 'All States';
-    const [statusFilter, setStatusFilter] = useState(initialStatus);
+    const { isDarkMode } = useTheme();
+    const {
+        products,
+        isLoading,
+        error,
+        currentPage,
+        totalPages,
+        totalCount,
+        goToPage,
+        doSearch,
+        updateProductStatus,
+    } = useProducts();
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [selectedProduct, setSelectedProduct] = useState(null);
 
+    const [searchInput, setSearchInput] = useState(location.state?.searchTerm || '');
+    const [statusFilter, setStatusFilter] = useState(location.state?.status || '');
+    const debounceRef = useRef(null);
+
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 800);
-        return () => clearTimeout(timer);
+        if (location.state?.searchTerm) {
+            doSearch(location.state.searchTerm);
+        }
     }, []);
 
-    const vendorsList = useMemo(() => {
-        const vendors = Array.from(new Set(products.map(p => p.vendor_name || p.vendor)));
-        return ['All Vendors', ...vendors.filter(Boolean)];
-    }, [products]);
+    const handleSearchChange = (e) => {
+        const val = e.target.value;
+        setSearchInput(val);
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            doSearch(val);
+        }, DEBOUNCE_MS);
+    };
 
-    const filteredProducts = useMemo(() => {
-        return products.filter(p => {
-            const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesVendor = vendorFilter === 'All Vendors' || (p.vendor_name === vendorFilter || p.vendor?.toString() === vendorFilter);
-            const matchesStatus = statusFilter === 'All States' ||
-                (statusFilter === 'Active' && p.status?.toLowerCase() === 'active') ||
-                (statusFilter === 'Blocked' && (p.status?.toLowerCase() === 'blocked' || p.is_blocked));
-            return matchesSearch && matchesVendor && matchesStatus;
-        });
-    }, [products, searchTerm, vendorFilter, statusFilter]);
+    const handleStatusChange = (e) => {
+        const val = e.target.value;
+        setStatusFilter(val);
+        doSearch(searchInput, val === 'All States' ? '' : val);
+    };
 
     const handleAction = (productId, newStatus) => {
         updateProductStatus(productId, newStatus);
     };
 
-    const handleLogout = () => {
-        sessionStorage.clear();
-        window.location.href = '/';
-    };
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
+    const formatCurrency = (amount) =>
+        new Intl.NumberFormat('en-IN', {
             style: 'currency',
             currency: 'INR',
-            minimumFractionDigits: 2
+            minimumFractionDigits: 2,
         }).format(amount);
-    };
+
+    const rangeStart = totalCount === 0 ? 0 : (currentPage - 1) * 50 + 1;
+    const rangeEnd = Math.min(currentPage * 50, totalCount);
 
     return (
-        <div className="flex h-screen bg-[#F8FAFC] font-sans selection:bg-violet-100 overflow-hidden text-slate-900">
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Products" onLogout={handleLogout} />
+        <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
+            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Products" onLogout={() => navigate('/')} />
 
-            <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 overflow-hidden">
-                {/* Header */}
-                <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-4 flex items-center justify-between z-20">
+            <div className="flex-1 flex flex-col min-w-0">
+                <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="p-2 hover:bg-slate-100 rounded-lg transition-all text-slate-500"
-                        >
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600 shadow-sm'}`}>
                             {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
                         </button>
-                        <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                                <Package className="w-5 h-5 text-slate-800" />
-                                <h1 className="text-xl font-bold text-slate-900 tracking-tight">Manage Products</h1>
-                            </div>
-                            <p className="text-xs text-slate-500 font-medium ml-7">Monitor and control all products from vendors</p>
+                        <div>
+                            <h1 className={`text-lg font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Market Registry</h1>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Global Inventory Control</p>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 md:w-10 md:h-10 bg-violet-900 rounded-full flex items-center justify-center text-white font-bold shadow-lg shadow-violet-900/20">A</div>
+                    <div className="flex items-center gap-6">
+                        <NotificationBell />
+                        <div className={`hidden lg:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest gap-2 ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                            <Box className="w-3.5 h-3.5" /> Sector 7-G Node
+                        </div>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 bg-gray-50/50">
-                    {/* Filter Container */}
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center gap-4">
-                        {/* Search Bar */}
-                        <div className="relative flex-1 w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search product name..."
-                                className="w-full pl-10 pr-4 py-2 bg-[#F8FAFC] border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/10 focus:border-violet-500 transition-all text-sm"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-transparent">
+                    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+                        {/* Summary Bar */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            {[
+                                { label: 'Active Items', value: totalCount, icon: Package, color: 'indigo' },
+                                { label: 'Market Depth', value: totalPages, icon: Activity, color: 'violet' },
+                                { label: 'Node Status', value: 'Synced', icon: Box, color: 'emerald' },
+                                { label: 'Auth Level', value: 'Root', icon: MoreVertical, color: 'amber' }
+                            ].map((stat, i) => (
+                                <div key={i} className={`p-6 rounded-[2rem] border transition-all duration-300 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color === 'indigo' ? (isDarkMode ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600') :
+                                            stat.color === 'violet' ? (isDarkMode ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-50 text-violet-600') :
+                                                stat.color === 'emerald' ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600') :
+                                                    (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600')
+                                            }`}>
+                                            <stat.icon className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">{stat.label}</p>
+                                            <p className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
 
-                        {/* Dropdowns */}
-                        <div className="flex items-center gap-3 w-full md:w-auto">
-                            <div className="relative min-w-[140px]">
-                                <select
-                                    className="appearance-none w-full bg-[#F8FAFC] border border-slate-200 rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/10 transition-all cursor-pointer"
-                                    value={vendorFilter}
-                                    onChange={(e) => setVendorFilter(e.target.value)}
-                                >
-                                    {vendorsList.map(v => <option key={v} value={v}>{v}</option>)}
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        {/* Search & Filter Toolbar */}
+                        <div className={`p-4 rounded-[2rem] border transition-all duration-300 flex flex-col md:flex-row gap-4 items-center ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
+                            <div className="relative flex-1 w-full">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                <input
+                                    type="text"
+                                    placeholder="Trace product by name or global ID..."
+                                    className={`w-full pl-11 pr-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-4 transition-all font-medium ${isDarkMode ? 'bg-slate-900/50 border-slate-800 text-white focus:ring-indigo-500/10 focus:border-indigo-500' : 'bg-slate-50 border-transparent text-slate-900 focus:ring-indigo-500/5'
+                                        }`}
+                                    value={searchInput}
+                                    onChange={handleSearchChange}
+                                />
                             </div>
-
-                            <div className="relative min-w-[140px]">
+                            <div className="flex items-center gap-3 w-full md:w-auto">
+                                <Filter className="w-4 h-4 text-slate-500 ml-2 hidden md:block" />
                                 <select
-                                    className="appearance-none w-full bg-[#F8FAFC] border border-slate-200 rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/10 transition-all cursor-pointer"
                                     value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    onChange={handleStatusChange}
+                                    className={`rounded-2xl px-4 py-3 text-sm font-black uppercase tracking-widest focus:outline-none min-w-[180px] w-full transition-all cursor-pointer ${isDarkMode ? 'bg-slate-900/50 border-slate-800 text-slate-300' : 'bg-slate-50 border-transparent text-slate-600'
+                                        }`}
                                 >
-                                    <option>All States</option>
-                                    <option>Active</option>
-                                    <option>Blocked</option>
+                                    <option value="">Global Filter</option>
+                                    <option value="active">Active State</option>
+                                    <option value="blocked">Blocked Node</option>
+                                    <option value="pending">Verification</option>
                                 </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            </div>
+                        </div>
+
+                        {/* Table */}
+                        <div className={`rounded-[2.5rem] border shadow-sm overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className={`border-b transition-colors duration-300 ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
+                                        <tr>
+                                            {['Market Entity', 'Registry Origin', 'Classification', 'Unit Price', 'Stock Level', 'Current State', 'Operations'].map(h => (
+                                                <th key={h} className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className={`divide-y transition-colors duration-300 ${isDarkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
+                                        {isLoading ? (
+                                            Array(6).fill(0).map((_, i) => (
+                                                <tr key={i} className="animate-pulse">
+                                                    <td colSpan="7" className="px-8 py-8"><div className={`h-12 rounded-2xl w-full ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`} /></td>
+                                                </tr>
+                                            ))
+                                        ) : products.length > 0 ? (
+                                            products.map((product) => (
+                                                <tr key={product.id} className={`group transition-all hover:translate-x-1 ${isDarkMode ? 'hover:bg-indigo-500/5' : 'hover:bg-slate-50/50'}`}>
+                                                    <td className="px-8 py-6">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center overflow-hidden transition-transform group-hover:scale-110 duration-500 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+                                                                {product.images?.[0]?.url ? (
+                                                                    <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <Package className="w-6 h-6 text-slate-300" />
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <p className={`text-sm font-bold truncate max-w-[180px] ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{product.name}</p>
+                                                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-1">ID: {product.id}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-8 py-6">
+                                                        <button
+                                                            onClick={() => navigate(`/vendor/${product.vendor}`)}
+                                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-indigo-400 hover:border-indigo-400' : 'bg-white border-slate-100 text-indigo-600 hover:border-indigo-600 shadow-sm'
+                                                                }`}
+                                                        >
+                                                            <Store className="w-3.5 h-3.5" />
+                                                            {product.vendor_name || 'ORIGIN'}
+                                                        </button>
+                                                    </td>
+                                                    <td className="px-8 py-6 font-bold text-[11px] text-slate-500 uppercase tracking-widest">{product.category}</td>
+                                                    <td className="px-8 py-6 font-black text-sm">{formatCurrency(product.price)}</td>
+                                                    <td className="px-8 py-6">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className={`w-1.5 h-1.5 rounded-full ${product.quantity > 10 ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                                                            <span className="text-[11px] font-black text-slate-500">{product.quantity} Units</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-8 py-6">
+                                                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${product.status?.toLowerCase() === 'active'
+                                                            ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border-emerald-100')
+                                                            : (isDarkMode ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-600 border-rose-100')
+                                                            }`}>
+                                                            {product.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-8 py-6 text-right">
+                                                        <div className="flex items-center justify-end gap-3">
+                                                            <button
+                                                                onClick={() => setSelectedProduct(product)}
+                                                                className={`p-2 rounded-xl transition-all ${isDarkMode ? 'bg-slate-800 text-indigo-400 hover:bg-slate-700' : 'bg-slate-50 text-indigo-600 hover:bg-indigo-100 border border-slate-100 hover:border-indigo-200 shadow-sm'}`}
+                                                            >
+                                                                <ArrowUpRight className="w-5 h-5" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleAction(product.id, product.status?.toLowerCase() === 'active' ? 'inactive' : 'active')}
+                                                                className={`p-2 rounded-xl transition-all border ${product.status?.toLowerCase() === 'active'
+                                                                    ? (isDarkMode ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20' : 'bg-rose-50 border-rose-100 text-rose-600 hover:bg-rose-100')
+                                                                    : (isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' : 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100')
+                                                                    }`}
+                                                            >
+                                                                {product.status?.toLowerCase() === 'active' ? <X className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="7" className="px-8 py-24 text-center">
+                                                    <div className="flex flex-col items-center">
+                                                        <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100 shadow-sm'}`}>
+                                                            <Box className="w-10 h-10 text-slate-300" />
+                                                        </div>
+                                                        <h3 className={`text-xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Empty Sector</h3>
+                                                        <p className="text-xs text-slate-500 font-medium">No market data detected for current terminal parameters.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
 
-                            {/* Funnel Icon */}
-                            <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-                                <Filter className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Table Section */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-[#FBFCFD] border-b border-slate-100">
-                                    <tr>
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Product</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendor</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Price</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Stock</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    {isLoading ? (
-                                        Array(5).fill(0).map((_, i) => (
-                                            <tr key={i} className="animate-pulse">
-                                                <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-32"></div></td>
-                                                <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24"></div></td>
-                                                <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-16"></div></td>
-                                                <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-8"></div></td>
-                                                <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-12"></div></td>
-                                                <td className="px-6 py-4"><div className="h-4 bg-slate-100 rounded w-24"></div></td>
-                                            </tr>
-                                        ))
-                                    ) : filteredProducts.length > 0 ? (
-                                        filteredProducts.map((product) => (
-                                            <tr key={product.id} className="hover:bg-slate-50/50 transition-colors group">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-4">
-                                                        {product.images && product.images.length > 0 ? (
-                                                            <img
-                                                                src={`http://localhost:8000${product.images[0].image}`}
-                                                                alt={product.name}
-                                                                className="w-10 h-10 rounded-lg object-cover border border-slate-100"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 border border-slate-100">
-                                                                <Package size={14} />
-                                                            </div>
-                                                        )}
-                                                        <div>
-                                                            <p className="text-sm font-bold text-slate-900 leading-tight uppercase tracking-tight">{product.name}</p>
-                                                            <p className="text-[9px] font-black text-slate-400 uppercase italic">ID: {product.id}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <button
-                                                        onClick={() => navigate(`/vendor/${product.vendor}`)}
-                                                        className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-white hover:border-indigo-100 border border-transparent transition-all"
-                                                    >
-                                                        <Store size={12} />
-                                                        {product.vendor_name || 'View Vendor'}
-                                                    </button>
-                                                </td>
-                                                <td className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">{product.category}</td>
-                                                <td className="px-6 py-4 text-sm font-black text-slate-900">{formatCurrency(product.price)}</td>
-                                                <td className="px-6 py-4 text-sm text-slate-500 font-bold text-center">{product.quantity}</td>
-                                                <td className="px-6 py-4 text-center">
-                                                    <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${product.status?.toLowerCase() === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
-                                                        {product.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex items-center justify-end gap-3">
-                                                        <button
-                                                            onClick={() => setSelectedProduct(product)}
-                                                            className="text-indigo-600 hover:text-indigo-800 text-xs font-bold transition-colors"
-                                                        >
-                                                            View
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleAction(product.id, product.status?.toLowerCase() === 'active' ? 'inactive' : 'active')}
-                                                            className={`${product.status?.toLowerCase() === 'active' ? 'text-rose-500 hover:text-rose-700' : 'text-emerald-500 hover:text-emerald-700'} text-xs font-bold transition-colors`}
-                                                        >
-                                                            {product.status?.toLowerCase() === 'active' ? 'Block' : 'Unblock'}
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="6" className="px-6 py-12 text-center text-slate-400 text-sm">
-                                                No products found matching your search.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                            {/* Pagination */}
+                            <div className={`px-8 py-5 border-t flex items-center justify-between transition-colors ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest hidden sm:block">
+                                    Displaying Records <span className="text-slate-400 mx-1.5">{rangeStart} - {rangeEnd}</span> of <span className={`${isDarkMode ? 'text-white' : 'text-slate-900'} ml-1`}>{totalCount}</span>
+                                </p>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => goToPage(currentPage - 1)}
+                                        disabled={currentPage <= 1}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border disabled:opacity-30 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                    >
+                                        <ChevronLeft className="w-4 h-4" /> Trace Back
+                                    </button>
+                                    <div className={`px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-900 border-slate-800 text-white'}`}>
+                                        PAGE {currentPage} / {totalPages}
+                                    </div>
+                                    <button
+                                        onClick={() => goToPage(currentPage + 1)}
+                                        disabled={currentPage >= totalPages}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border disabled:opacity-30 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                    >
+                                        Advance <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </main>
             </div>
 
-            {/* Detail Modal */}
+            {/* Premium Modal */}
             <AnimatePresence>
                 {selectedProduct && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -256,106 +301,104 @@ const ProductManagement = () => {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setSelectedProduct(null)}
-                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                            className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
                         />
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            initial={{ scale: 0.9, opacity: 0, y: 40 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="relative bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col md:flex-row h-auto max-h-[90vh]"
+                            exit={{ scale: 0.9, opacity: 0, y: 40 }}
+                            className={`relative w-full max-w-4xl rounded-[3rem] overflow-hidden shadow-2xl flex flex-col md:flex-row transition-colors duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
                         >
-                            {/* Image Section */}
-                            <div className="w-full md:w-1/2 bg-slate-50 p-6 flex flex-col border-b md:border-b-0 md:border-r border-slate-100">
-                                <div className="flex-1 min-h-[300px] mb-4 relative rounded-2xl overflow-hidden bg-white border border-slate-200">
+                            {/* Left Side: Images */}
+                            <div className={`w-full md:w-1/2 p-8 flex flex-col border-b md:border-b-0 md:border-r ${isDarkMode ? 'bg-slate-950/30 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
+                                <div className={`flex-1 min-h-[400px] mb-6 relative rounded-[2.5rem] overflow-hidden border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-inner'}`}>
                                     <img
-                                        src={selectedProduct.activeImage || (selectedProduct.images && selectedProduct.images.length > 0 ? `http://localhost:8000${selectedProduct.images[0].image}` : '')}
+                                        src={selectedProduct.activeImage || (selectedProduct.images?.[0]?.url || '')}
                                         alt={selectedProduct.name}
-                                        className="w-full h-full object-contain p-4"
+                                        className="w-full h-full object-contain p-8"
                                     />
-                                    {!selectedProduct.images || selectedProduct.images.length === 0 && (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-300">
-                                            <Package size={48} className="mb-2 opacity-20" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">No Visual Assets</p>
+                                    {(!selectedProduct.images || selectedProduct.images.length === 0) && (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-300 opacity-20">
+                                            <Package size={80} />
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Scrolling Image Gallery */}
-                                {selectedProduct.images && selectedProduct.images.length > 0 && (
-                                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                                {selectedProduct.images?.length > 1 && (
+                                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide px-2">
                                         {selectedProduct.images.map((img, idx) => (
                                             <button
                                                 key={idx}
-                                                onClick={() => setSelectedProduct({ ...selectedProduct, activeImage: `http://localhost:8000${img.image}` })}
-                                                className={`flex-shrink-0 w-16 h-16 rounded-xl border-2 transition-all overflow-hidden bg-white ${selectedProduct.activeImage === `http://localhost:8000${img.image}` || (!selectedProduct.activeImage && idx === 0) ? 'border-violet-600 scale-95 shadow-lg' : 'border-transparent hover:border-slate-200'}`}
+                                                onClick={() => setSelectedProduct({ ...selectedProduct, activeImage: img.url })}
+                                                className={`flex-shrink-0 w-20 h-20 rounded-2xl border-4 transition-all overflow-hidden bg-white ${selectedProduct.activeImage === img.url || (!selectedProduct.activeImage && idx === 0) ? 'border-indigo-600 scale-95 shadow-xl' : (isDarkMode ? 'border-slate-800 hover:border-slate-700' : 'border-white hover:border-slate-200')}`}
                                             >
-                                                <img src={`http://localhost:8000${img.image}`} alt="Preview" className="w-full h-full object-cover" />
+                                                <img src={img.url} alt="Preview" className="w-full h-full object-cover" />
                                             </button>
                                         ))}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Content Section */}
-                            <div className="w-full md:w-1/2 p-8 flex flex-col bg-white">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                                        <Package className="w-5 h-5 text-violet-600" />
-                                        Audit Profile
-                                    </h2>
-                                    <button onClick={() => setSelectedProduct(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                                        <ChevronDown className="w-5 h-5 text-slate-400 rotate-90" />
-                                    </button>
-                                </div>
+                            {/* Right Side: Data */}
+                            <div className="w-full md:w-1/2 p-12 flex flex-col justify-between">
+                                <div className="space-y-8">
+                                    <div className="flex items-center justify-between">
+                                        <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${selectedProduct.status?.toLowerCase() === 'active'
+                                            ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border-emerald-100')
+                                            : (isDarkMode ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-600 border-rose-100')
+                                            }`}>
+                                            {selectedProduct.status} SYSTEM STATE
+                                        </div>
+                                        <button onClick={() => setSelectedProduct(null)} className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-400'}`}>
+                                            <X className="w-6 h-6" />
+                                        </button>
+                                    </div>
 
-                                <div className="space-y-6 flex-1 overflow-y-auto pr-2 scrollbar-hide">
                                     <div>
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Product Name</p>
-                                        <p className="text-lg font-bold text-slate-900 leading-tight">{selectedProduct.name}</p>
+                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Entity Classification</p>
+                                        <h2 className={`text-3xl font-black tracking-tight leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{selectedProduct.name}</h2>
+                                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-2">{selectedProduct.category}</p>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-8">
                                         <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>
-                                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border ${selectedProduct.status?.toLowerCase() === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
-                                                {selectedProduct.status}
-                                            </span>
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Market Valuation</p>
+                                            <p className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{formatCurrency(selectedProduct.price)}</p>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Category</p>
-                                            <p className="text-xs font-bold text-slate-700">{selectedProduct.category}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Price Points</p>
-                                            <p className="text-lg font-black text-slate-900">{formatCurrency(selectedProduct.price)}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Inventory Level</p>
-                                            <p className="text-lg font-black text-slate-900">{selectedProduct.quantity} Units</p>
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Node Capacity</p>
+                                            <p className={`text-3xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{selectedProduct.quantity} <span className="text-sm font-bold text-slate-500">Units</span></p>
                                         </div>
                                     </div>
 
-                                    <div className="pt-6 border-t border-slate-100">
-                                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-3">Merchant Information</p>
-                                        <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-indigo-50 transition-colors"
-                                            onClick={() => navigate(`/vendor/${selectedProduct.vendor}`)}>
-                                            <Store className="w-5 h-5 text-indigo-500" />
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-slate-700 text-sm leading-none mb-1">{selectedProduct.vendor_name}</span>
-                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ID: {selectedProduct.vendor}</span>
+                                    <div className={`p-6 rounded-[2rem] border mt-10 transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-4">Origin Merchant Protocol</p>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-indigo-400' : 'bg-white border-slate-200 text-indigo-600 shadow-sm'}`}>
+                                                <Store className="w-6 h-6" />
                                             </div>
+                                            <div>
+                                                <p className={`font-black text-sm ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{selectedProduct.vendor_name || 'AUTHENTIC MERCHANT'}</p>
+                                                <p className="text-[10px] text-slate-500 font-bold uppercase">ID: {selectedProduct.vendor}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => navigate(`/vendor/${selectedProduct.vendor}`)}
+                                                className={`ml-auto p-2 rounded-xl transition-all ${isDarkMode ? 'hover:bg-slate-700 text-indigo-400' : 'hover:bg-white text-indigo-600 shadow-sm'}`}
+                                            >
+                                                <ArrowUpRight className="w-5 h-5" />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
 
                                 <button
                                     onClick={() => setSelectedProduct(null)}
-                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 mt-8"
+                                    className={`w-full py-5 rounded-2xl mt-12 font-black text-[11px] uppercase tracking-widest transition-all shadow-2xl hover:translate-y-[-2px] active:translate-y-[1px] ${isDarkMode
+                                        ? 'bg-indigo-600 text-white shadow-indigo-600/20 hover:bg-indigo-500'
+                                        : 'bg-slate-900 text-white shadow-slate-900/20 hover:bg-slate-800'
+                                        }`}
                                 >
-                                    Termination Audit
+                                    Egress to Registry
                                 </button>
                             </div>
                         </motion.div>
@@ -367,4 +410,3 @@ const ProductManagement = () => {
 };
 
 export default ProductManagement;
-

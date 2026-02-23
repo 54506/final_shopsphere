@@ -43,6 +43,12 @@ function Checkout() {
 
   const [isProcessing, setIsProcessing] = useState(false);
 
+  React.useEffect(() => {
+    if (!localStorage.getItem("selectedAddress")) {
+      navigate("/cart");
+    }
+  }, [navigate]);
+
 
   // Calculations
 
@@ -170,14 +176,12 @@ function Checkout() {
             transaction_id: response.razorpay_payment_id,
 
             items: cartObjects.map(item => ({
-
+              id: item.id,
               name: item.name,
-
               quantity: item.quantity,
-
               price: item.price
-
-            }))
+            })),
+            address_id: JSON.parse(localStorage.getItem("selectedAddress"))?.id
 
           });
 

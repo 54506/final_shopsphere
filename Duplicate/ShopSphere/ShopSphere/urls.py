@@ -2,19 +2,27 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
-    path('', include('user.urls')),
+    # JWT Token Refresh (used by frontend auto-refresh interceptor)
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    path('api/finance/', include('finance.api_urls')),
+    path('api/vendor/', include('vendor.api_urls')),
+    path('api/delivery/', include('deliveryAgent.api_urls')),
+
     # Django Admin
     path('admin/', admin.site.urls),
     
-    
-    # API endpoints for each app
-    path('vendor/', include('vendor.urls')),  # Template-based views
-    path('api/vendor/', include('vendor.api_urls')),  # REST API endpoints
+    # Template-based views for each app
+    path('vendor/', include('vendor.urls')),
     path('superAdmin/', include('superAdmin.urls')),
     path('deliveryAgent/', include('deliveryAgent.urls')),
-    path('api/delivery/', include('deliveryAgent.api_urls')),
+    path('adminapp/', include('admin.urls')),
+    
+    # Main site URLs (Keep at the bottom)
+    path('', include('user.urls')),
 ]
 
 # Serve media files

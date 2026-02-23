@@ -6,8 +6,8 @@ from decimal import Decimal
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ShopSphere.settings')
 django.setup()
 
-from vendor.models import Product, VendorProfile, ProductImage, Category
-from user.models import AuthUser, ProductReview
+from vendor.models import Product, VendorProfile, ProductImage
+from user.models import AuthUser, Review
 
 
 def populate_trending():
@@ -33,11 +33,8 @@ def populate_trending():
         }
     )
     
-    # Get or create a category
-    category, _ = Category.objects.get_or_create(
-        slug="electronics",
-        defaults={"name": "Electronics"}
-    )
+    # Categories are CharFields now
+    category_slug = "electronics"
     
     # Create some trending products
     trending_items = [
@@ -67,28 +64,33 @@ def populate_trending():
                 "description": item["description"],
                 "price": Decimal(str(item["price"])),
                 "quantity": 100,
-                "category": category,
+                "category": category_slug,
             }
         )
         
         # Add a few images (placeholder/empty) so the loop works
+        import base64
+        # 1x1 gray pixel PNG
+        dummy_image = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==")
+        
         if product.images.count() < 4:
             for i in range(4):
                 ProductImage.objects.create(
                     product=product,
-                    image_name=f"trending_{i}.jpg",
-                    image_mimetype="image/jpeg",
-                    image_data=b"" # Empty binary for testing
+                    image_filename=f"trending_{i}.jpg",
+                    image_mimetype="image/png",
+                    image_data=dummy_image
                 )
         
         # Add high-rated reviews
         for user in users:
-            ProductReview.objects.update_or_create(
-                product=product,
+            Review.objects.update_or_create(
+                Product=product,
                 user=user,
                 defaults={
                     "rating": random.randint(4, 5),
-                    "comment": "Mind-blowing product!"
+                    "comment": "Mind-blowing product!",
+                    "reviewer_name": user.username
                 }
             )
             

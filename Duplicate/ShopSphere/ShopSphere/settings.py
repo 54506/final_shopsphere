@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'superAdmin',
     'user',
     'deliveryAgent',
+    'finance',
 ]
 
 MIDDLEWARE = [
@@ -112,6 +113,7 @@ AUTH_USER_MODEL = 'user.AuthUser'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -162,8 +164,8 @@ LOGIN_URL = 'login' # Matches the name in user.urls
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
-# Disable automatic trailing slash append if needed (User had it False previously)
-APPEND_SLASH = False
+# Enable automatic trailing slash append for API robustness
+APPEND_SLASH = True
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

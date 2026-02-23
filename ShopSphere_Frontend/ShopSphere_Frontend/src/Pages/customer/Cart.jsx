@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { DecrCart, IncrCart, RemoveFromCart } from "../../Store";
-import { getAddresses, addAddress, deleteAddress, updateAddress } from "../../api/axios";
+import { getAddresses, addAddress, deleteAddress, updateAddress, reverseGeocode } from "../../api/axios";
 import {
   FaTrashAlt,
   FaPlus,
@@ -62,9 +62,8 @@ function Cart() {
       const data = await getAddresses();
       const list = data.addresses || (Array.isArray(data) ? data : []);
       setSavedAddresses(list);
-      if (list.length > 0 && !selectedAddress) {
-        setSelectedAddress(list[0].id);
-      }
+      // ✅ NO auto-selection — user must explicitly click to choose their address.
+      // Prevents addresses from one user's session leaking to another user's session.
     } catch (err) {
       console.error("Failed to fetch addresses:", err);
     }
@@ -84,10 +83,7 @@ function Cart() {
         const lon = position.coords.longitude;
 
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-          );
-          const data = await res.json();
+          const data = await reverseGeocode(lat, lon);
 
           setFormData({
             name: formData.name || "",

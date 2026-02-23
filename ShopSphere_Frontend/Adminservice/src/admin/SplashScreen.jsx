@@ -6,7 +6,9 @@ const SplashScreen = () => {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        setIsVisible(true);
+        // Use a small timeout to ensure the initial mount is rendered before triggering the entrance animation
+        const entranceTimer = setTimeout(() => setIsVisible(true), 10);
+
         const timer = setTimeout(() => {
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
 
@@ -35,8 +37,12 @@ const SplashScreen = () => {
             }
         }, 3000);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            clearTimeout(entranceTimer);
+        };
     }, [navigate]);
+
 
     return (
         <div className="fixed inset-0 bg-[#0f0720] flex flex-col items-center justify-center z-[9999] transition-opacity duration-1000">

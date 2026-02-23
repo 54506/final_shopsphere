@@ -1,24 +1,26 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
+import requests
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+from django.core.paginator import Paginator
 
 from .models import AuthUser, Cart, CartItem, Order, OrderItem, Address, Review, Payment
-from .serializers import RegisterSerializer, ProductSerializer, CartSerializer, OrderSerializer, AddressSerializer, ReviewSerializer
+from .serializers import RegisterSerializer, ProductSerializer, CartSerializer, OrderSerializer, AddressSerializer, ReviewSerializer, OrderTrackingSerializer
 from .forms import AddressForm
 import uuid
 from django.db import transaction
-from vendor.models import Product
+from django.db.models import F, Q
+from vendor.models import Product, ProductImage
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
-from django.utils import timezone
-from datetime import timedelta
-from django.db.models import Count, F, FloatField, ExpressionWrapper, Q
+from django.core.paginator import Paginator
+from finance.services import FinanceService
 
 
 @api_view(['GET', 'POST'])
@@ -75,11 +77,17 @@ def login_api(request):
                 # Late import to prevent circularity if models reference each other
                 from deliveryAgent.models import DeliveryAgentProfile
                 profile = user.delivery_agent_profile
-                if profile.approval_status != 'approved':
+                if profile.approval_status == 'pending':
                     return Response({
                         "error": "Your delivery partner registration is still pending admin approval. Please check back later.",
                         "status": "pending_approval"
                     }, status=403)
+                elif profile.approval_status == 'rejected':
+                    return Response({
+                        "error": f"Your registration was rejected. Reason: {profile.rejection_reason or 'Internal documentation check failed'}",
+                        "status": "rejected"
+                    }, status=403)
+                
                 if profile.is_blocked:
                     return Response({
                         "error": f"Your delivery account has been restricted. Reason: {profile.blocked_reason or 'Policy violation'}",
@@ -93,11 +101,17 @@ def login_api(request):
             try:
                 from vendor.models import VendorProfile
                 profile = user.vendor_profile
-                if profile.approval_status != 'approved':
+                if profile.approval_status == 'pending':
                     return Response({
                         "error": "Your vendor account is pending admin approval. You will be notified once approved.",
                         "status": "pending_approval"
                     }, status=403)
+                elif profile.approval_status == 'rejected':
+                    return Response({
+                        "error": f"Your vendor application was rejected. Reason: {profile.rejection_reason or 'Compliance issues'}",
+                        "status": "rejected"
+                    }, status=403)
+                
                 if profile.is_blocked:
                     return Response({
                         "error": f"Your vendor account is currently blocked. Reason: {profile.blocked_reason or 'Policy violation'}",
@@ -119,8 +133,7 @@ def login_api(request):
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
                 "username": user.username,
-                "role": user.role,
-                "email": user.email
+                "role": user.role
             })
         else:
             return redirect('user_products')
@@ -183,17 +196,57 @@ def google_login_api(request):
 
 # 🔹 HOME (Product Page)
 @api_view(['GET'])
-
-
-#permission_classes([IsAuthenticated])
-
+@authentication_classes([])
+@permission_classes([AllowAny])
 def home_api(request):
-    products = Product.objects.filter(status='active', is_blocked=False)
-    
+    PAGE_SIZE = 50
+
+    # Base query
+    products_qs = Product.objects.filter(
+        status__in=['active', 'approved'],
+        is_blocked=False
+    ).select_related('vendor').prefetch_related('images').order_by('-id')
+
+    # Optional category filtering  (frontend may send display names like 'Home & Kitchen')
+    CATEGORY_MAP = {
+        'home & kitchen': 'home_kitchen',
+        'home and kitchen': 'home_kitchen',
+        'beauty': 'beauty_personal_care',
+        'beauty & personal care': 'beauty_personal_care',
+        'toys': 'toys_games',
+        'toys & games': 'toys_games',
+        'sports & fitness': 'sports',
+    }
+    category = request.GET.get('category')
+    if category and category.lower() != 'all':
+        normalized = CATEGORY_MAP.get(category.lower(), category)
+        products_qs = products_qs.filter(category__iexact=normalized)
+
+    # Smart search: if search is a pure integer treat it as a product-ID lookup
+    search = request.GET.get('search', '').strip()
+    if search:
+        if search.isdigit():
+            # Exact product-ID lookup
+            products_qs = products_qs.filter(id=int(search))
+        else:
+            # Name / description contains
+            products_qs = products_qs.filter(name__icontains=search)
+
     if request.accepted_renderer.format == 'json':
-        serializer = ProductSerializer(products, many=True)
-        return Response(serializer.data)
-    
+        # Server-side pagination: 50 per page
+        page_number = int(request.GET.get('page', 1))
+        paginator = Paginator(products_qs, PAGE_SIZE)
+        page_obj = paginator.get_page(page_number)
+
+        serializer = ProductSerializer(page_obj.object_list, many=True, context={'request': request})
+        return Response({
+            'count': paginator.count,
+            'num_pages': paginator.num_pages,
+            'current_page': page_obj.number,
+            'results': serializer.data,
+        })
+
+    # HTML fallback
     cart_count = 0
     if request.user.is_authenticated:
         try:
@@ -201,15 +254,19 @@ def home_api(request):
             cart_count = sum(item.quantity for item in cart.items.all())
         except Cart.DoesNotExist:
             pass
-            
+
     return render(request, "product_list.html", {
-        "products": products, 
+        "products": products_qs,
         "cart_count": cart_count,
         "user": request.user
     })
 
 def get_product(request):
-    products = Product.objects.all()
+    products_qs = Product.objects.all().select_related('vendor').prefetch_related('images')
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(products_qs, 20)
+    page_obj = paginator.get_page(page_number)
+    
     cart_count = 0
     if request.user.is_authenticated:
         try:
@@ -219,7 +276,7 @@ def get_product(request):
             pass
             
     return render(request, "product_list.html", {
-        "products": products, 
+        "products": page_obj, 
         "cart_count": cart_count,
         "user": request.user
     })
@@ -228,20 +285,34 @@ def get_product(request):
 @permission_classes([IsAuthenticated])
 def add_to_cart(request, product_id):
     product = get_object_or_404(Product, id=product_id)
+
+    # Stock availability check
+    if product.quantity <= 0:
+        if request.accepted_renderer.format == 'json':
+            return Response({"error": f"'{product.name}' is out of stock."}, status=400)
+        return redirect('cart')
+
     cart, created = Cart.objects.get_or_create(user=request.user)
-    
     cart_item, item_created = CartItem.objects.get_or_create(cart=cart, product=product)
-    
+
     if not item_created:
+        # Prevent adding more than available stock
+        if cart_item.quantity >= product.quantity:
+            if request.accepted_renderer.format == 'json':
+                return Response(
+                    {"error": f"Only {product.quantity} unit(s) of '{product.name}' available in stock."},
+                    status=400
+                )
+            return redirect('cart')
         cart_item.quantity += 1
         cart_item.save()
-    
+
     if request.accepted_renderer.format == 'json':
         return Response({
             "message": "Product added to cart",
             "cart_count": sum(item.quantity for item in cart.items.all())
         })
-        
+
     return redirect('cart')
 
 @api_view(['GET'])
@@ -302,20 +373,46 @@ def process_payment(request):
         with transaction.atomic():
             # CASE 1: Items passed directly (frontend state)
             if items_from_request:
-                total_amount = Decimal('0.00')
-                for item_data in items_from_request:
-                    price = Decimal(str(item_data.get('price', 0)))
-                    quantity = int(item_data.get('quantity', 1))
-                    total_amount += price * quantity
+                # Compute total from the items list sent by the frontend
+                total_product_amount = Decimal('0.00')
+                for i in items_from_request:
+                    try:
+                        p = Decimal(str(i.get('price') or 0))
+                        q = int(i.get('quantity') or 1)
+                        total_product_amount += p * q
+                    except (ValueError, TypeError, InvalidOperation):
+                        continue # skip invalid items
                 
+                tax_amount = (total_product_amount * Decimal('0.05')).quantize(Decimal('0.01'))
+                shipping_cost = Decimal('50.00') if total_product_amount > 0 else Decimal('0.00')
+                grand_total = total_product_amount + tax_amount + shipping_cost
+                
+                # Flexible address retrieval: support 'address_id' or 'delivery_address' object/id
+                raw_address_id = request.data.get('address_id')
+                if not raw_address_id:
+                    delivery_address_data = request.data.get('delivery_address')
+                    if isinstance(delivery_address_data, dict):
+                        raw_address_id = delivery_address_data.get('id')
+                    elif delivery_address_data:
+                        raw_address_id = delivery_address_data
+
+                addr_id = int(raw_address_id) if raw_address_id and str(raw_address_id).isdigit() else None
+
+                if not addr_id:
+                    return Response({"error": "Please select a delivery address before placing the order."}, status=400)
+
                 order = Order.objects.create(
                     user=request.user,
                     order_number=order_number,
                     payment_method=payment_mode,
+                    delivery_address_id=addr_id,  # Safe integer or None
                     transaction_id=transaction_id,
-                    total_amount=total_amount,
-                    subtotal=total_amount,
-                    payment_status='completed'
+                    subtotal=total_product_amount,
+                    tax_amount=tax_amount,
+                    shipping_cost=shipping_cost,
+                    total_amount=grand_total,
+                    payment_status='completed',
+                    status='confirmed'
                 )
                 
                 # Create Payment record
@@ -323,7 +420,7 @@ def process_payment(request):
                     order=order,
                     user=request.user,
                     method=payment_mode if payment_mode in dict(Payment.PAYMENT_METHOD_CHOICES) else 'cod',
-                    amount=total_amount,
+                    amount=grand_total,
                     transaction_id=transaction_id,
                     status='completed',
                     completed_at=timezone.now().replace(second=0, microsecond=0)
@@ -333,17 +430,41 @@ def process_payment(request):
                     price = Decimal(str(item_data.get('price', 0)))
                     quantity = int(item_data.get('quantity', 1))
                     
-                    # Try to find the product object to maintain the FK relation
-                    product_obj = Product.objects.filter(name=item_data.get('name')).first()
+                    # Try to link product and vendor
+                    product = None
+                    vendor = None
+                    product_id = item_data.get('id') or item_data.get('product_id')
+                    
+                    if product_id:
+                        from vendor.models import Product
+                        try:
+                            product = Product.objects.get(id=product_id)
+                            # Check stock
+                            if product.quantity < quantity:
+                                raise serializers.ValidationError(f"Insufficient stock for {product.name}")
+                            
+                            vendor = product.vendor
+                        except Product.DoesNotExist:
+                            pass
                     
                     OrderItem.objects.create(
                         order=order,
-                        product=product_obj,
+                        product=product,
+                        vendor=vendor,
                         product_name=item_data.get('name'),
                         quantity=quantity,
                         product_price=price,
                         subtotal=price * quantity
                     )
+                    
+                    # Decrease inventory
+                    if product:
+                        product.quantity -= quantity
+                        product.save()
+                
+                # Record financial entries in ledger
+                FinanceService.record_order_financials(order)
+                
                 Cart.objects.filter(user=request.user).delete()
 
             # CASE 2: Use items from the database cart
@@ -353,16 +474,38 @@ def process_payment(request):
                 if not cart_items:
                     return Response({"error": "Cart is empty"}, status=400)
 
-                total_amount = sum(item.get_total() for item in cart_items)
+                total_product_amount = sum(item.get_total() for item in cart_items)
+                tax_amount = (total_product_amount * Decimal('0.05')).quantize(Decimal('0.01'))
+                shipping_cost = Decimal('50.00') if total_product_amount > 0 else Decimal('0.00')
+                grand_total = total_product_amount + tax_amount + shipping_cost
                 
+                # Flexible address retrieval
+                raw_address_id = request.data.get('address_id')
+                if not raw_address_id:
+                    delivery_address_data = request.data.get('delivery_address')
+                    if isinstance(delivery_address_data, dict):
+                        raw_address_id = delivery_address_data.get('id')
+                    elif delivery_address_data:
+                        raw_address_id = delivery_address_data
+
+                addr_id = int(raw_address_id) if raw_address_id and str(raw_address_id).isdigit() else None
+
+                if not addr_id:
+                    return Response({"error": "Please select a delivery address before placing the order."}, status=400)
+
                 order = Order.objects.create(
                     user=request.user,
                     order_number=order_number,
                     payment_method=payment_mode,
+                    delivery_address_id=addr_id,
+                    billing_address_id=addr_id, # Default billing to delivery if not separate
                     transaction_id=transaction_id,
-                    total_amount=total_amount,
-                    subtotal=total_amount,
-                    payment_status='completed'
+                    subtotal=total_product_amount,
+                    tax_amount=tax_amount,
+                    shipping_cost=shipping_cost,
+                    total_amount=grand_total,
+                    payment_status='completed',
+                    status='confirmed'
                 )
 
                 # Create Payment record
@@ -370,27 +513,59 @@ def process_payment(request):
                     order=order,
                     user=request.user,
                     method=payment_mode if payment_mode in dict(Payment.PAYMENT_METHOD_CHOICES) else 'cod',
-                    amount=total_amount,
+                    amount=grand_total,
                     transaction_id=transaction_id,
                     status='completed',
                     completed_at=timezone.now().replace(second=0, microsecond=0)
                 )
 
                 for item in cart_items:
+                    # Check stock
+                    if item.product.quantity < item.quantity:
+                        raise serializers.ValidationError(f"Insufficient stock for {item.product.name}")
+
                     OrderItem.objects.create(
                         order=order,
                         product=item.product,
+                        vendor=item.product.vendor,
                         product_name=item.product.name,
                         quantity=item.quantity,
                         product_price=item.product.price,
                         subtotal=item.get_total()
                     )
+                    
+                    # Decrease inventory
+                    item.product.quantity -= item.quantity
+                    item.product.save()
+                
+                # Record financial entries in ledger
+                FinanceService.record_order_financials(order)
+                
                 cart.items.all().delete()
 
     except Cart.DoesNotExist:
         return Response({"error": "Cart not found"}, status=404)
     except Exception as e:
+        import traceback
+        traceback.print_exc()   # prints full stack trace to Django console
         return Response({"error": f"Database Error: {str(e)}"}, status=500)
+
+    # Send confirmation email
+    try:
+        subject = f'Order Confirmed - {order.order_number}'
+        message = (
+            f"Dear {request.user.username},\n\n"
+            f"Your order {order.order_number} has been successfully placed and confirmed!\n"
+            f"Total Amount: ₹{order.total_amount}\n\n"
+            "Our team is already preparing your items for delivery. You can track your order status "
+            "anytime in your profile section.\n\n"
+            "Thank you for choosing ShopSphere!\n\n"
+            "Regards,\n"
+            "ShopSphere Team"
+        )
+        send_mail(subject, message, settings.EMAIL_HOST_USER, [request.user.email])
+    except Exception as e:
+        print(f"Failed to send order confirmation email: {e}")
 
     if request.accepted_renderer.format == 'json':
         return Response({
@@ -408,58 +583,187 @@ def my_orders(request):
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
     
     if request.accepted_renderer.format == 'json':
-        serializer = OrderSerializer(orders, many=True, context={'request': request})
+        serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
         
     return render(request, "my_orders.html", {"orders": orders})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cancel_order(request, order_id):
+    """
+    Cancel an order and restore product stock quantities.
+    Only orders in 'pending' or 'confirmed' state can be cancelled.
+    """
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+
+    if not order.can_be_cancelled():
+        return Response(
+            {"error": f"Order '{order.order_number}' cannot be cancelled. Current status: {order.status}."},
+            status=400
+        )
+
+    try:
+        with transaction.atomic():
+            # Restore product quantities and cancel items
+            for item in order.items.select_related('product').all():
+                if item.product:
+                    Product.objects.filter(pk=item.product.pk).update(
+                        quantity=F('quantity') + item.quantity
+                    )
+                item.vendor_status = 'cancelled'
+                item.save(update_fields=['vendor_status'])
+            
+            # Cancel delivery assignment if exists
+            try:
+                from deliveryAgent.models import DeliveryAssignment
+                assignment = DeliveryAssignment.objects.filter(order=order).first()
+                if assignment:
+                    assignment.status = 'cancelled'
+                    assignment.save(update_fields=['status'])
+            except Exception:
+                pass
+
+            # Reverse financial entries
+            FinanceService.cancel_order_financials(order)
+
+            order.status = 'cancelled'
+            order.save(update_fields=['status', 'updated_at'])
+
+    except Exception as e:
+        return Response({"error": f"Cancellation failed: {str(e)}"}, status=500)
+
+    return Response({
+        "success": True,
+        "message": f"Order {order.order_number} has been cancelled and stock has been restored.",
+        "order_number": order.order_number,
+        "status": order.status,
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def order_tracking(request, order_number):
+    try:
+        order = Order.objects.prefetch_related('items', 'tracking_history').select_related(
+            'delivery_address'
+        ).get(order_number=order_number, user=request.user)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=404)
+
+    # -------------------------------------------------------------------
+    # Build synthetic tracking steps from order + delivery assignment
+    # -------------------------------------------------------------------
+    # Check delivery assignment status for more granularity if order is in 'shipping'
+    assignment = None
+    try:
+        assignment = order.delivery_assignment
+    except Exception:
+        pass
+
+    # Basic stages
+    # 0: Placed
+    # 1: Confirmed
+    # 2: Picked Up (Assignment: picked_up)
+    # 3: Out for Delivery (Assignment: in_transit / attempting_delivery)
+    # 4: Delivered (Order: delivered)
+    
+    current_idx = 0
+    if order.status == 'pending':
+        current_idx = 0
+    elif order.status == 'confirmed':
+        current_idx = 1
+    elif order.status == 'shipping':
+        current_idx = 2
+    elif order.status == 'out_for_delivery':
+        current_idx = 3
+    elif order.status == 'delivered':
+        current_idx = 4
+    elif order.status == 'cancelled':
+        current_idx = 0 # Fallback
+
+    STATUS_STEPS = [
+        ('pending',    'Order Placed',     'Your order has been placed successfully.'),
+        ('confirmed',  'Confirmed',        'Seller has confirmed your order.'),
+        ('shipping',   'Picked Up',        'Package picked up by delivery agent.'),
+        ('in_transit', 'Out for Delivery', 'Your package is on its way!'),
+        ('delivered',  'Delivered',        'Order delivered successfully.'),
+    ]
+
+    tracking_steps = []
+    for i, (status_key, label, note) in enumerate(STATUS_STEPS):
+        tracking_steps.append({
+            'key': status_key,
+            'label': label,
+            'note': note,
+            'done': i <= current_idx,
+            'active': i == current_idx,
+        })
+
+    # -------------------------------------------------------------------
+    # Enrich with DeliveryAssignment if present
+    # -------------------------------------------------------------------
+    agent_info = None
+    estimated_delivery = None
+    if assignment:
+        agent_info = {
+            'name': assignment.agent.user.get_full_name() or assignment.agent.user.username,
+            'phone': assignment.agent.phone_number,
+            'vehicle': assignment.agent.vehicle_type,
+            'vehicle_number': assignment.agent.vehicle_number or '',
+        }
+        estimated_delivery = str(assignment.estimated_delivery_date)
+
+    # Delivery address summary
+    addr = order.delivery_address
+    delivery_address = None
+    if addr:
+        delivery_address = f"{addr.address_line1}, {addr.city}, {addr.state} {addr.pincode}"
+
+    return Response({
+        'order_number': order.order_number,
+        'status': order.status,
+        'created_at': order.created_at.isoformat(),
+        'subtotal': str(order.total_amount),
+        'items_count': order.items.count(),
+        'current_step_index': current_idx,
+        'tracking_steps': tracking_steps,
+        'agent_info': agent_info,
+        'estimated_delivery': estimated_delivery,
+        'delivery_address': delivery_address,
+    })
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def address_page(request):
     if request.method == 'POST':
-        # Use Serializer for API/JSON requests
-        if request.accepted_renderer.format == 'json':
-            # Map frontend field names to model field names
-            data = request.data.copy()
-            if 'address' in data and 'address_line1' not in data:
-                data['address_line1'] = data.pop('address')
-            
-            serializer = AddressSerializer(data=data)
-            if serializer.is_valid():
-                serializer.save(user=request.user)
-                return Response({
-                    "message": "Address saved successfully",
-                    "address": serializer.data
-                }, status=201)
-            return Response(serializer.errors, status=400)
+        data = request.data.copy()
+        # Map frontend field names to model field names
+        if 'address' in data and 'address_line1' not in data:
+            data['address_line1'] = data.pop('address')
         
-        # Fallback for traditional HTML forms
-        form = AddressForm(request.POST)
-        if form.is_valid():
-            address = form.save(commit=False)
-            address.user = request.user
-            address.save()
-            return redirect('address_page')
+        serializer = AddressSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response({
+                "message": "Address saved successfully",
+                "address": serializer.data
+            }, status=201)
+        return Response(serializer.errors, status=400)
 
-    addresses = Address.objects.filter(user=request.user).order_by('-created_at')[:1]
-    
-    if request.accepted_renderer.format == 'json':
-        serializer = AddressSerializer(addresses, many=True)
-        return Response({"addresses": serializer.data})
-        
-    form = AddressForm()
-    return render(request, "address.html", {"addresses": addresses, "form": form})
+    # GET — return all addresses for the user
+    addresses = Address.objects.filter(user=request.user).order_by('-created_at')
+    serializer = AddressSerializer(addresses, many=True)
+    return Response({"addresses": serializer.data})
+
 
 @api_view(['POST', 'GET', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_address(request, id):
     address = get_object_or_404(Address, id=id, user=request.user)
     address.delete()
-    
-    if request.accepted_renderer.format == 'json':
-        return Response({"message": "Address deleted successfully"})
-        
-    return redirect('address_page')
+    return Response({"message": "Address deleted successfully"})
+
 
 @api_view(['PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
@@ -479,6 +783,7 @@ def update_address(request, id):
             "address": serializer.data
         })
     return Response(serializer.errors, status=400)
+
 
 @api_view(['POST', 'GET'])
 @permission_classes([IsAuthenticated])
@@ -505,6 +810,7 @@ def logout_api(request):
 #     return render(request, 'review.html', {'product': product})
 
 @api_view(['GET', 'POST'])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id)
@@ -512,34 +818,35 @@ def product_detail(request, product_id):
     can_edit_review = False
     days_left = 0
     
-    if request.user.is_authenticated:
-        user_review = Review.objects.filter(user=request.user, Product=product).first()
-        if user_review:
-            time_diff = timezone.now() - user_review.created_at
-            if time_diff.days < 5:
-                can_edit_review = True
-                days_left = 5 - time_diff.days
+    try:
+        if request.user and request.user.is_authenticated:
+            user_review = Review.objects.filter(user=request.user, Product=product).first()
+            if user_review:
+                time_diff = timezone.now() - user_review.created_at
+                if time_diff.days < 5:
+                    can_edit_review = True
+                    days_left = 5 - time_diff.days
+    except Exception:
+        pass
 
     reviews = Review.objects.filter(Product=product).order_by('-created_at')
-    
-    if request.accepted_renderer.format == 'json':
-        product_data = ProductSerializer(product).data
-        reviews_data = ReviewSerializer(reviews, many=True).data
-        return Response({
-            "product": product_data,
-            "reviews": reviews_data,
-            "user_review": ReviewSerializer(user_review).data if user_review else None,
-            "can_edit_review": can_edit_review,
-            "days_left": days_left
-        })
+    product_data = ProductSerializer(product, context={'request': request}).data
+    reviews_data = ReviewSerializer(reviews, many=True).data
 
-    return render(request, "user_product_detail.html", {
-        "product": product,
-        "reviews": reviews,
-        "user_review": user_review,
+    return Response({
+        "product": product_data,
+        "reviews": reviews_data,
+        "user_review": ReviewSerializer(user_review).data if user_review else None,
         "can_edit_review": can_edit_review,
         "days_left": days_left
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def customer_invoice(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    return render(request, "invoice_customer.html", {"order": order})
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -559,22 +866,6 @@ def submit_review_api(request, product_id):
         serializer.save(user=request.user, Product=product)
         return Response(serializer.data, status=201 if not user_review else 200)
     return Response(serializer.errors, status=400)
-
-@api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def delete_review_api(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
-    user_review = Review.objects.filter(user=request.user, Product=product).first()
-    
-    if not user_review:
-        return Response({"error": "Review not found"}, status=404)
-        
-    time_diff = timezone.now() - user_review.created_at
-    if time_diff.days >= 5:
-        return Response({"error": "Review deletion window (5 days) has passed"}, status=403)
-        
-    user_review.delete()
-    return Response({"message": "Review deleted successfully"})
 
 # @login_required
 # def user_reviews(request):
@@ -642,51 +933,50 @@ def auth_page(request):
 
     return render(request, "auth.html", {"page": page})
 
-# ======================================
-# 🔥 Trending Products Logic
-# ======================================
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def trending_products(request):
-    from user.models import Review
-    seven_days_ago = timezone.now() - timedelta(days=7)
+def reverse_geocode(request):
+    """
+    Proxy to Nominatim API to avoid CORS issues on frontend.
+    """
+    lat = request.query_params.get('lat')
+    lon = request.query_params.get('lon')
+
+    if not lat or not lon:
+        return Response({"error": "Latitude and Longitude are required"}, status=400)
+
+    # Nominatim requires format=json and a proper User-Agent
+    url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}"
+    headers = {
+        'User-Agent': 'ShopSphere-Project-Ecommerce/1.0'
+    }
 
     try:
-        products = Product.objects.annotate(
-            recent_review_count=Count(
-                'reviews',
-                filter=Q(reviews__created_at__gte=seven_days_ago)
-            )
-        ).annotate(
-            trending_score=ExpressionWrapper(
-                (F('recent_review_count') * 2.0) + (F('average_rating') * 3.0),
-                output_field=FloatField()
-            )
-        ).filter(
-            trending_score__gt=0
-        ).order_by(
-            '-trending_score',
-            '-total_reviews'
-        )[:10]
-    except Exception:
-        products = Product.objects.none()
+        response = requests.get(url, headers=headers, timeout=10)
+        return Response(response.json(), status=response.status_code)
+    except Exception as e:
+        return Response({"error": f"Geocoding failed: {str(e)}"}, status=500)
 
-    # ✅ Fallback: if no trending products found, return top-rated or newest products
-    if not products.exists():
-        # Try products that have reviews
-        products = Product.objects.filter(
-            status='active', is_blocked=False
-        ).annotate(
-            review_count=Count('reviews')
-        ).filter(
-            review_count__gt=0
-        ).order_by('-review_count')[:10]
-
-    # Final fallback: just return newest active products
-    if not products.exists():
-        products = Product.objects.filter(
-            status='active', is_blocked=False
-        ).order_by('-created_at')[:10]
-
-    serializer = ProductSerializer(products, many=True)
-    return Response(serializer.data)
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def get_trending_products(request):
+    """
+    Returns products that have a high average rating or are recently added.
+    """
+    from django.db.models import Avg
+    products = Product.objects.filter(
+        status__in=['active', 'approved'],
+        is_blocked=False
+    ).annotate(
+        average_rating=Avg('reviews__rating')
+    ).order_by('-average_rating', '-created_at')[:15]
+    
+    serializer = ProductSerializer(products, many=True, context={'request': request})
+    data = serializer.data
+    # Ensure average_rating is never None
+    for item in data:
+        if item.get('average_rating') is None:
+            item['average_rating'] = 0.0
+    return Response(data)

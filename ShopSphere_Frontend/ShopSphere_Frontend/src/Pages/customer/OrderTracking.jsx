@@ -40,21 +40,25 @@ const OrderTracking = () => {
     }, [orderId, orders]);
 
     const steps = [
-        { id: "placed", label: "Order Placed", icon: <CheckCircle size={20} /> },
-        { id: "production", label: "In Production / Warehouse", icon: <Warehouse size={20} /> },
-        { id: "ocean_transit", label: "Ocean Transit", icon: <Ship size={20} /> },
-        { id: "shipping", label: "Shipping – Final Mile", icon: <Truck size={20} /> },
+        { id: "pending", label: "Order Placed", icon: <CheckCircle size={20} /> },
+        { id: "confirmed", label: "Confirmed by Vendor", icon: <Warehouse size={20} /> },
+        { id: "shipping", label: "In Transit", icon: <Ship size={20} /> },
+        { id: "out_for_delivery", label: "Out for Delivery", icon: <Truck size={20} /> },
         { id: "delivered", label: "Delivered", icon: <Box size={20} /> },
     ];
 
     const getStatusIndex = (status) => {
+        // Special mapping for delivery agent states
+        if (status === 'out_for_delivery') return 3;
         const index = steps.findIndex(step => step.id === status);
         return index === -1 ? 0 : index;
     };
 
     if (!order) return null;
 
-    const currentStepIndex = getStatusIndex(order.order_status || "ocean_transit");
+    // Harmonize status field name (backend sends 'status', frontend was looking for 'order_status')
+    const currentStatus = order.status || order.order_status || "pending";
+    const currentStepIndex = getStatusIndex(currentStatus);
     const progressPercent = (currentStepIndex / (steps.length - 1)) * 100;
 
     return (

@@ -67,6 +67,16 @@ class DeliveryAgentProfile(models.Model):
     id_number = models.CharField(max_length=50, blank=True, null=True)
     id_proof_file = models.FileField(upload_to='id_proofs/', blank=True, null=True)
     
+    # Specific Identity Proofs
+    pan_number = models.CharField(max_length=10, blank=True, null=True)
+    pan_card_file = models.FileField(upload_to='delivery_pan_cards/', blank=True, null=True)
+    aadhar_number = models.CharField(max_length=12, blank=True, null=True)
+    aadhar_card_file = models.FileField(upload_to='delivery_aadhar_cards/', blank=True, null=True)
+    
+    # Additional documents uploaded during registration
+    additional_documents = models.FileField(upload_to='delivery_additional_docs/', blank=True, null=True)
+    selfie_with_id = models.ImageField(upload_to='delivery_selfies/', blank=True, null=True)
+    
     # Bank Details for Payout
     bank_holder_name = models.CharField(max_length=100)
     bank_account_number = models.CharField(max_length=20)
@@ -83,13 +93,22 @@ class DeliveryAgentProfile(models.Model):
     is_blocked = models.BooleanField(default=False)
     blocked_reason = models.TextField(blank=True, null=True)
     
+    # Account Deletion Request
+    is_deletion_requested = models.BooleanField(default=False)
+    deletion_reason = models.TextField(blank=True, null=True)
+    deletion_requested_at = models.DateTimeField(null=True, blank=True)
+    
     # Service Area
     service_cities = models.JSONField(default=list, help_text="List of cities where agent provides service")
+    service_pincodes = models.JSONField(default=list, help_text="List of specific pincodes/areas served")
     preferred_delivery_radius = models.IntegerField(
         default=5,
         validators=[MinValueValidator(1), MaxValueValidator(50)],
         help_text="Preferred delivery radius in kilometers"
     )
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    last_location_update = models.DateTimeField(null=True, blank=True)
     
     # Operational Info
     working_hours_start = models.TimeField(null=True, blank=True)
@@ -102,11 +121,11 @@ class DeliveryAgentProfile(models.Model):
     average_rating = models.DecimalField(
         max_digits=3,
         decimal_places=2,
-        default=0.00,
-        validators=[MinValueValidator(0.00), MaxValueValidator(5.00)]
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(5)]
     )
     total_reviews = models.IntegerField(default=0)
-    total_earnings = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    total_earnings = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
     # Timestamps
     created_at = models.DateTimeField(default=timezone.now)
@@ -136,7 +155,7 @@ class DeliveryAgentProfile(models.Model):
         """Get active orders assigned to this agent"""
         return DeliveryAssignment.objects.filter(
             agent=self,
-            status__in=['assigned', 'picked_up', 'in_transit']
+            status__in=['assigned', 'accepted', 'picked_up', 'in_transit', 'arrived']
         ).count()
     
     def get_pending_commission(self):
@@ -160,6 +179,7 @@ class DeliveryAssignment(models.Model):
         ('rejected', 'Rejected'),
         ('picked_up', 'Picked Up'),
         ('in_transit', 'In Transit'),
+        ('arrived', 'Arrived at Location'),
         ('attempting_delivery', 'Attempting Delivery'),
         ('delivered', 'Delivered'),
         ('failed', 'Delivery Failed'),
@@ -213,7 +233,8 @@ class DeliveryAssignment(models.Model):
     signature_image = models.ImageField(upload_to='delivery_proofs/', null=True, blank=True)
     delivery_photo = models.ImageField(upload_to='delivery_proofs/', null=True, blank=True)
     otp_verified = models.BooleanField(default=False)
-    otp_code = models.CharField(max_length=6, blank=True)
+    otp_code = models.CharField(max_length=6, null=True, blank=True)
+    failure_reason = models.TextField(blank=True, null=True)
 
     class Meta:
         ordering = ['-assigned_at']
@@ -231,6 +252,15 @@ class DeliveryAssignment(models.Model):
         self.status = 'accepted'
         self.accepted_at = timezone.now()
         self.save()
+
+        # Update daily stats
+        stats, created = DeliveryDailyStats.objects.get_or_create(
+            agent=self.agent,
+            date=timezone.now().date()
+        )
+        stats.total_deliveries_assigned += 1
+        stats.save()
+
         
         # Update order status to shipping
         if self.order:
@@ -242,10 +272,31 @@ class DeliveryAssignment(models.Model):
         self.status = 'picked_up'
         self.pickup_time = timezone.now()
         self.save()
+        
+        # Update order status to shipping
+        if self.order:
+            self.order.status = 'shipping'
+            self.order.save(update_fields=['status'])
     
     def mark_in_transit(self):
         """Mark as in transit to customer"""
         self.status = 'in_transit'
+        self.save()
+
+        # Update order status to out_for_delivery
+        if self.order:
+            self.order.status = 'out_for_delivery'
+            self.order.save(update_fields=['status'])
+
+    def mark_arrived(self):
+        """Mark as arrived at customer location and generate OTP"""
+        import secrets
+        import string
+        if not self.otp_code:
+            # Generate 6-digit numeric OTP
+            self.otp_code = ''.join(secrets.choice(string.digits) for _ in range(6))
+        
+        self.status = 'arrived'
         self.save()
     
     def mark_delivered(self):
@@ -253,21 +304,42 @@ class DeliveryAssignment(models.Model):
         from user.models import UserWallet, Order
         from .models import DeliveryCommission, DeliveryDailyStats
         
-        # Update order status to delivered
-        if self.order:
-            self.order.status = 'delivered'
-            self.order.delivered_at = timezone.now()
-            self.order.save()
-        
         self.status = 'delivered'
         self.delivery_time = timezone.now()
         self.completed_at = timezone.now()
         self.save()
         
         # 1. Update order status
-        self.order.status = 'delivered'
-        self.order.delivered_at = self.delivery_time
-        self.order.save()
+        if self.order:
+            self.order.status = 'delivered'
+            self.order.delivered_at = self.delivery_time
+            self.order.save(update_fields=['status', 'delivered_at'])
+            
+            # Create Tracking Records
+            from user.models import OrderTracking
+            OrderTracking.objects.create(
+                order=self.order,
+                status='Delivered',
+                location=self.delivery_city,
+                notes="Order successfully delivered and verified via OTP."
+            )
+            
+            from django.apps import apps
+            DeliveryTracking = apps.get_model('deliveryAgent', 'DeliveryTracking')
+            DeliveryTracking.objects.create(
+                delivery_assignment=self,
+                latitude=0, longitude=0,
+                address=self.delivery_city,
+                status='Delivered',
+                notes="Delivery completed successfully."
+            )
+        
+        # 2. Settle Financials
+        try:
+            from finance.services import FinanceService
+            FinanceService.settle_order_financials(self.order)
+        except Exception as e:
+            print(f"DEBUG: Error settling financials: {str(e)}")
 
         # 2. Calculate Commission Based on Type (Local vs Out-of-city)
         # Assuming local is within the same city
@@ -297,20 +369,49 @@ class DeliveryAssignment(models.Model):
         wallet, created = UserWallet.objects.get_or_create(user=self.agent.user)
         wallet.add_balance(total_commission, f"Delivery Commission for Order {self.order.order_number}")
         
-        # 4. Update daily stats
+        # 4. Update agent profile stats
+        self.agent.total_deliveries += 1
+        self.agent.completed_deliveries += 1
+        self.agent.total_earnings = Decimal(str(self.agent.total_earnings)) + total_commission
+        self.agent.save()
+
+
+        # 5. Update daily stats
         stats, created = DeliveryDailyStats.objects.get_or_create(
             agent=self.agent,
             date=timezone.now().date()
         )
         stats.total_deliveries_completed += 1
-        stats.total_earnings += total_commission
+        stats.total_earnings = Decimal(str(stats.total_earnings)) + total_commission
         stats.save()
     
-    def mark_failed(self):
+    def mark_failed(self, reason=None):
         """Mark delivery as failed"""
         self.status = 'failed'
+        if reason:
+            self.failure_reason = reason
         self.attempts_count += 1
         self.save()
+
+        # Update agent profile stats
+        self.agent.total_deliveries += 1
+        self.agent.cancelled_deliveries += 1
+        self.agent.save()
+
+        # Update daily stats
+        stats, created = DeliveryDailyStats.objects.get_or_create(
+            agent=self.agent,
+            date=timezone.now().date()
+        )
+        stats.total_deliveries_failed += 1
+        stats.save()
+
+
+        
+        # Also cancel the order
+        if self.order:
+            self.order.status = 'cancelled'
+            self.order.save(update_fields=['status'])
 
 
 # ===============================================
@@ -492,22 +593,29 @@ class DeliveryDailyStats(models.Model):
     total_deliveries_assigned = models.IntegerField(default=0)
     total_deliveries_completed = models.IntegerField(default=0)
     total_deliveries_failed = models.IntegerField(default=0)
+
+    # Legacy fields (needed for DB integrity)
+    total_deliveries = models.IntegerField(default=0)
+    completed_deliveries = models.IntegerField(default=0)
+    failed_deliveries = models.IntegerField(default=0)
+    distance_covered = models.FloatField(default=0.0)
+    hours_worked = models.FloatField(default=0.0)
     
     # Time Metrics
-    total_hours_worked = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    average_delivery_time = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)  # in minutes
+    total_hours_worked = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    average_delivery_time = models.DecimalField(max_digits=5, decimal_places=2, default=0)  # in minutes
     
     # Distance Metrics
-    total_distance = models.DecimalField(max_digits=8, decimal_places=2, default=0.00)  # in km
-    average_distance_per_delivery = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
+    total_distance = models.DecimalField(max_digits=8, decimal_places=2, default=0)  # in km
+    average_distance_per_delivery = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     
     # Financial Metrics
-    total_earnings = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    total_bonus = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    total_earnings = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_bonus = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
     # Rating Metrics
     customer_ratings_received = models.IntegerField(default=0)
-    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -616,8 +724,9 @@ class DeliveryAgentWallet(models.Model):
     def add_earnings(self, amount, description=''):
         """Add earnings to wallet"""
         if amount > 0:
-            self.current_balance += amount
-            self.total_earnings += amount
+            amount = Decimal(str(amount))
+            self.current_balance = Decimal(str(self.current_balance)) + amount
+            self.total_earnings = Decimal(str(self.total_earnings)) + amount
             self.save()
             DeliveryAgentTransaction.objects.create(
                 wallet=self,

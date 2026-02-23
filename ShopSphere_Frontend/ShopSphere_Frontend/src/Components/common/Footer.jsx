@@ -1,9 +1,16 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaHeart } from "react-icons/fa";
 
 
 const Footer = () => {
+    const location = useLocation();
+    const hideOnPaths = ['/delivery', '/vendor', '/vendordashboard', '/welcome', '/login', '/signup', '/account-verification', '/verify-otp'];
+
+    if (hideOnPaths.some(path => location.pathname.startsWith(path))) {
+        return null;
+    }
+
     return (
         <footer className="relative overflow-hidden bg-gradient-to-br from-[#1e0533] via-[#2d1050] to-[#140025] text-white py-16">
             {/* Decorative elements */}

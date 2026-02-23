@@ -1,6 +1,44 @@
 import { configureStore, createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { getMyOrders, getProducts } from "./api/axios";
 
+// ─── Persistence Helpers (Cart & Wishlist) ──────────────────────────────────
+// Persist data per-user: key = "cart_<userEmail>" so each account is isolated
+const getUserEmail = () => {
+  try {
+    const u = localStorage.getItem("user");
+    return u ? JSON.parse(u).email : "guest";
+  } catch {
+    return "guest";
+  }
+};
+
+const loadFromStorage = (type) => { // type = 'cart' or 'wishlist'
+  try {
+    const key = `${type}_${getUserEmail()}`;
+    const serialized = localStorage.getItem(key);
+    return serialized ? JSON.parse(serialized) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveToStorage = (type, state) => {
+  try {
+    const key = `${type}_${getUserEmail()}`;
+    localStorage.setItem(key, JSON.stringify(state));
+  } catch (err) {
+    console.error(`Failed to save ${type} to localStorage:`, err);
+  }
+};
+
+const clearFromStorage = (type) => {
+  try {
+    const key = `${type}_${getUserEmail()}`;
+    localStorage.removeItem(key);
+  } catch {/* ignore */ }
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 // PRODUCTS SLICE
 
 export const fetchProducts = createAsyncThunk(
@@ -42,16 +80,19 @@ const productsSlice = createSlice({
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.isLoading = false;
 
-        const products = Array.isArray(action.payload) ? action.payload : [];
+        const productsData = action.payload;
+        const products = Array.isArray(productsData)
+          ? productsData
+          : (productsData?.results || []);
 
         const processedProducts = products.map(product => {
           const gallery = product.images && product.images.length > 0
             ? product.images.map(img => {
-              const imgPath = img.image;
+              let imgPath = typeof img === 'string' ? img : (img.image || img.url);
+              if (!imgPath) return "/public/placeholder.jpg";
               if (imgPath.startsWith('http')) return imgPath;
-              if (imgPath.startsWith('/media/')) return `http://127.0.0.1:8000${imgPath}`;
-              if (imgPath.startsWith('media/')) return `http://127.0.0.1:8000/${imgPath}`;
-              return `http://127.0.0.1:8000/media/${imgPath}`;
+              if (imgPath.startsWith('/')) return `http://127.0.0.1:8000${imgPath}`;
+              return `http://127.0.0.1:8000/${imgPath}`;
             })
             : ["/public/placeholder.jpg"];
 
@@ -99,11 +140,11 @@ const productsSlice = createSlice({
   }
 });
 
-//  CART SLICE
+//  CART SLICE — initialized from localStorage so it survives page refresh
 
 const cartSlice = createSlice({
   name: "cart",
-  initialState: [],
+  initialState: loadFromStorage('cart'), // ✅ Load from localStorage on app start
   reducers: {
     AddToCart: (state, action) => {
       const existingItem = state.find(
@@ -115,7 +156,7 @@ const cartSlice = createSlice({
       } else {
         state.push({
           ...action.payload,
-          quantity: 1, // ✅ FORCE quantity = 1
+          quantity: 1,
         });
       }
     },
@@ -134,7 +175,7 @@ const cartSlice = createSlice({
         if (state[index].quantity > 1) {
           state[index].quantity -= 1;
         } else {
-          state.splice(index, 1); // ✅ Proper removal
+          state.splice(index, 1);
         }
       }
     },
@@ -143,7 +184,14 @@ const cartSlice = createSlice({
       return state.filter(i => i.id !== action.payload.id);
     },
 
-    clearCart: () => [],
+    clearCart: () => {
+      clearFromStorage('cart'); // ✅ Also clear from localStorage
+      return [];
+    },
+
+    syncCart: () => {
+      return loadFromStorage('cart');
+    },
   },
 });
 
@@ -152,7 +200,8 @@ export const {
   IncrCart,
   DecrCart,
   RemoveFromCart,
-  clearCart
+  clearCart,
+  syncCart
 } = cartSlice.actions;
 
 
@@ -160,22 +209,29 @@ export const {
 
 const wishlistSlice = createSlice({
   name: "wishlist",
-  initialState: [],
+  initialState: loadFromStorage('wishlist'), // ✅ Load from localStorage on app start
   reducers: {
     AddToWishlist: (state, action) => {
-      const item = state.find(i => i.name === action.payload.name);
+      const item = state.find(i => i.id === action.payload.id || i.name === action.payload.name);
       if (!item) state.push(action.payload);
     },
     RemoveFromWishlist: (state, action) =>
-      state.filter(i => i.name !== action.payload.name),
-    clearWishlist: () => [],
+      state.filter(i => (i.id !== action.payload.id && i.name !== action.payload.name)),
+    clearWishlist: () => {
+      clearFromStorage('wishlist');
+      return [];
+    },
+    syncWishlist: () => {
+      return loadFromStorage('wishlist');
+    },
   }
 });
 
 export const {
   AddToWishlist,
   RemoveFromWishlist,
-  clearWishlist
+  clearWishlist,
+  syncWishlist
 } = wishlistSlice.actions;
 
 // ORDERS SLICE
@@ -232,6 +288,13 @@ const store = configureStore({
     wishlist: wishlistSlice.reducer,
     order: orderSlice.reducer,
   },
+});
+
+// ✅ Subscribe to store changes and persist state to localStorage after every action
+store.subscribe(() => {
+  const state = store.getState();
+  saveToStorage('cart', state.cart);
+  saveToStorage('wishlist', state.wishlist);
 });
 
 export default store;

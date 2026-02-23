@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { clearCart, clearWishlist, clearOrders } from "../../Store";
+import { clearCart, clearWishlist, clearOrders, syncCart, syncWishlist } from "../../Store";
 import { logout as apiLogout } from "../../api/axios";
 import {
     FaShoppingCart,
@@ -55,10 +55,27 @@ function Navbar() {
                 console.error("Failed to parse user data", error);
                 localStorage.removeItem("user");
             }
+        } else {
+            setUser(null);
         }
+
+        // Always sync with storage whenever user state (or location) might have changed
+        dispatch(syncCart());
+        dispatch(syncWishlist());
     }, [location.pathname]); // Re-check on route change (e.g. after login/redirect)
 
     const handleLogout = () => {
+        // Get user email before clearing, to delete their scoped cart key
+        try {
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+                const userEmail = JSON.parse(storedUser).email;
+                if (userEmail) {
+                    localStorage.removeItem(`cart_${userEmail}`);
+                }
+            }
+        } catch { /* ignore */ }
+
         // Clear Redux State
         dispatch(clearCart());
         dispatch(clearWishlist());
@@ -69,6 +86,7 @@ function Navbar() {
 
         // Clear Local Storage User Info
         localStorage.removeItem("user");
+        localStorage.removeItem("selectedAddress");
 
         setUser(null);
         setProfileDropdownOpen(false);
@@ -209,6 +227,11 @@ function Navbar() {
     // ============================================
     // RENDER
     // ============================================
+    const hideOnPaths = ['/delivery', '/vendor', '/vendordashboard', '/welcome', '/login', '/signup', '/account-verification', '/verify-otp'];
+    if (hideOnPaths.some(path => location.pathname.startsWith(path))) {
+        return null;
+    }
+
     return (
         <nav
             className="fixed top-0 left-0 right-0 z-50 py-3 transition-all duration-500 ease-out"
@@ -235,7 +258,7 @@ function Navbar() {
                     >
                         <img src="/s_logo.png" alt="ShopSphere Logo" className="w-20 h-20 object-contain transition-transform duration-300 group-hover:scale-110 translate-y-0.5" />
                         <span className="-ml-6 text-xl sm:text-2xl font-bold text-white tracking-wide group-hover:text-orange-200 transition-colors duration-300 hidden sm:block drop-shadow-md">
-                        hopSphere
+                            hopSphere
                         </span>
                     </Link>
 

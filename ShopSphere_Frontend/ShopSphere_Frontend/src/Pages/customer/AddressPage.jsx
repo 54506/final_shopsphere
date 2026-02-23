@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getAddresses, addAddress, deleteAddress, updateAddress } from "../../api/axios";
+import { getAddresses, addAddress, deleteAddress, updateAddress, reverseGeocode } from "../../api/axios";
 
 export default function AddressPage() {
   const navigate = useNavigate();
@@ -63,10 +63,7 @@ export default function AddressPage() {
         const lon = position.coords.longitude;
 
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
-          );
-          const data = await res.json();
+          const data = await reverseGeocode(lat, lon);
 
           setFormData({
             name: "",

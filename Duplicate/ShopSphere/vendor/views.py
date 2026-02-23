@@ -10,10 +10,14 @@ User = get_user_model()
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from .models import VendorProfile, Product, ProductImage
 from django.db import transaction
+from django.utils import timezone
+from finance.services import FinanceService
+from finance.models import LedgerEntry
+from user.models import OrderItem, Order
 
 User = get_user_model()
 
@@ -35,6 +39,7 @@ def register_view(request):
 
     # Use request.data for DRF/JSON, or request.POST for traditional forms
     data = request.data if is_json else request.POST
+    files = request.FILES  # Always available for file uploads
     
     username = data.get('username')
     email = data.get('email')
@@ -76,7 +81,7 @@ def register_view(request):
                     return Response({'error': 'You already have a vendor profile or a pending request.'}, status=400)
                 
                 # Create the vendor profile with all registration data
-                VendorProfile.objects.create(
+                vendor = VendorProfile.objects.create(
                     user=user,
                     shop_name=data.get('shop_name', data.get('storeName', '')),
                     shop_description=data.get('shop_description', data.get('shopDescription', '')),
@@ -93,6 +98,17 @@ def register_view(request):
                     shipping_fee=data.get('shipping_fee') if data.get('shipping_fee') else 0.00,
                     approval_status='pending'
                 )
+                
+                # Save file uploads separately after creation
+                if files.get('additional_documents'):
+                    vendor.additional_documents = files.get('additional_documents')
+                if files.get('selfie_with_id'):
+                    vendor.selfie_with_id = files.get('selfie_with_id')
+                if files.get('pan_card_file'):
+                    vendor.pan_card_file = files.get('pan_card_file')
+                if files.get('id_proof_file'):
+                    vendor.id_proof_file = files.get('id_proof_file')
+                vendor.save()
                 
                 print(f"DEBUG: Vendor details for {user.username} sent to Admin for approval.")
                 return Response({'success': True, 'message': 'Registration submitted! Details have been sent to the Admin for approval.'}, status=201)
@@ -250,9 +266,79 @@ def vendor_home_view(request):
 
     # If approved, show products dashboard
     products = vendor.products.all()
+    
+    # Financial Summary
+    summary = FinanceService.get_vendor_earnings_summary(vendor)
+    
+    # Recent Orders (Top 5)
+    order_items = OrderItem.objects.filter(vendor=vendor).select_related('order').order_by('-order__created_at')[:5]
+    
+    # Financial Ledgers (Top 10)
+    ledgers = LedgerEntry.objects.filter(vendor=vendor).select_related('order').order_by('-created_at')[:10]
+    
     return render(request, 'vendor_dashboard.html', {
         'vendor': vendor,
-        'products': products
+        'products': products,
+        'summary': summary,
+        'recent_orders': order_items,
+        'ledgers': ledgers
+    })
+
+@login_required(login_url='login')
+def vendor_orders_view(request):
+    """View all orders for this vendor"""
+    vendor = request.user.vendor_profile
+    order_items = OrderItem.objects.filter(vendor=vendor).select_related('order').order_by('-order__created_at')
+    return render(request, 'vendor_orders.html', {'vendor': vendor, 'order_items': order_items})
+
+@login_required(login_url='login')
+def vendor_invoice(request, order_number):
+    """View vendor-specific order copy"""
+    vendor = request.user.vendor_profile
+    order = get_object_or_404(Order, order_number=order_number)
+    
+    # Fallback for missing delivery address
+    if not order.delivery_address:
+        from user.models import Address
+        order.delivery_address = Address.objects.filter(user=order.user, is_default=True).first() or \
+                               Address.objects.filter(user=order.user).first()
+    
+    items = OrderItem.objects.filter(order=order, vendor=vendor)
+    
+    vendor_subtotal = sum(item.subtotal for item in items)
+    
+    return render(request, 'invoice_vendor_order.html', {
+        'vendor': vendor,
+        'order': order,
+        'items': items,
+        'vendor_subtotal': vendor_subtotal
+    })
+
+@login_required(login_url='login')
+def vendor_commission_invoice(request, order_number):
+    """View commission deduction details"""
+    vendor = request.user.vendor_profile
+    order = get_object_or_404(Order, order_number=order_number)
+    
+    # Fallback for missing delivery address
+    if not order.delivery_address:
+        from user.models import Address
+        order.delivery_address = Address.objects.filter(user=order.user, is_default=True).first() or \
+                               Address.objects.filter(user=order.user).first()
+    
+    items = OrderItem.objects.filter(order=order, vendor=vendor)
+    
+    vendor_subtotal = sum(item.subtotal for item in items)
+    total_commission = sum(item.commission_amount for item in items)
+    net_earnings = vendor_subtotal - total_commission
+    
+    return render(request, 'invoice_vendor_commission.html', {
+        'vendor': vendor,
+        'order': order,
+        'items': items,
+        'vendor_subtotal': vendor_subtotal,
+        'total_commission': total_commission,
+        'net_earnings': net_earnings
     })
 
 
@@ -328,7 +414,9 @@ def add_product_view(request):
         for image in images:
             ProductImage.objects.create(
                 product=product,
-                image=image
+                image_data=image.read(),
+                image_mimetype=image.content_type,
+                image_filename=image.name
             )
 
         return redirect('vendor_home')
@@ -386,7 +474,12 @@ def edit_product_view(request, product_id):
 
             # Save new images
             for image in new_images:
-                ProductImage.objects.create(product=product, image=image)
+                ProductImage.objects.create(
+                    product=product,
+                    image_data=image.read(),
+                    image_mimetype=image.content_type,
+                    image_filename=image.name
+                )
 
         return redirect('vendor_home')
 
@@ -445,3 +538,44 @@ def view_product_view(request, product_id):
     }
 
     return render(request, 'product_detail.html', context)
+
+@login_required(login_url='login')
+def vendor_ledgers_view(request):
+    """Full financial history for the vendor"""
+    vendor = request.user.vendor_profile
+    ledgers = LedgerEntry.objects.filter(vendor=vendor).select_related('order').order_by('-created_at')
+    
+    return render(request, 'vendor_ledgers.html', {
+        'vendor': vendor,
+        'ledgers': ledgers
+    })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def vendor_request_deletion(request):
+    """Vendor requests account deletion"""
+    try:
+        from .models import VendorProfile
+        vendor = VendorProfile.objects.get(user=request.user)
+        reason = request.data.get('reason', 'No reason provided')
+        
+        vendor.is_deletion_requested = True
+        vendor.deletion_reason = reason
+        vendor.deletion_requested_at = timezone.now()
+        vendor.save()
+        
+        return Response({
+            'success': True, 
+            'message': 'Account deletion request submitted. Admin will review it shortly.'
+        })
+    except VendorProfile.DoesNotExist:
+        return Response({'error': 'Vendor profile not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def vendor_logout(request):
+    """Vendor logout"""
+    # On the server side, we just return success, client handles token removal
+    return Response({'success': True, 'message': 'Logged out successfully'})

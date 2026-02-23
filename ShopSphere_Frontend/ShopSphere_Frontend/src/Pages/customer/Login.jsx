@@ -32,6 +32,7 @@ function Login() {
 
             // Save user data (now includes email from backend)
             localStorage.setItem("user", JSON.stringify(data));
+            localStorage.removeItem("selectedAddress");
             toast.success("Login successful! Welcome back.");
 
             navigate("/");
@@ -73,6 +74,7 @@ function Login() {
 
                 // Save tokens and user info (axios.js already saves tokens, but we save user profile)
                 localStorage.setItem("user", JSON.stringify(backendData));
+                localStorage.removeItem("selectedAddress");
 
                 toast.success("Logged in with Google!");
                 navigate("/");

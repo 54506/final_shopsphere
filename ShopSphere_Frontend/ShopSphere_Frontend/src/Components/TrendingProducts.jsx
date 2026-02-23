@@ -13,11 +13,11 @@ function getImageUrl(item) {
     const images = item.images || item.gallery || [];
     if (images.length > 0) {
         const img = images[0];
-        const imgPath = typeof img === "string" ? img : img.image;
+        let imgPath = typeof img === "string" ? img : (img.image || img.url);
+        if (!imgPath) return "/placeholder.jpg";
         if (imgPath.startsWith("http")) return imgPath;
-        if (imgPath.startsWith("/media/")) return `http://127.0.0.1:8000${imgPath}`;
-        if (imgPath.startsWith("media/")) return `http://127.0.0.1:8000/${imgPath}`;
-        return `http://127.0.0.1:8000/media/${imgPath}`;
+        if (imgPath.startsWith("/")) return `http://127.0.0.1:8000${imgPath}`;
+        return `http://127.0.0.1:8000/${imgPath}`;
     }
     return item.image || "/placeholder.jpg";
 }

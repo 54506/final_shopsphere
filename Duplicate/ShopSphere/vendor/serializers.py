@@ -1,5 +1,7 @@
 from rest_framework import serializers
+from django.urls import reverse
 from django.contrib.auth import get_user_model
+from user.models import OrderItem
 from .models import VendorProfile, Product, ProductImage
 
 User = get_user_model()
@@ -50,6 +52,7 @@ class VendorProfileSerializer(serializers.ModelSerializer):
         model = VendorProfile
         fields = [
             'id', 'user', 'shop_name', 'shop_description', 'address',
+            'contact_name', 'contact_email', 'contact_phone',
             'business_type', 'business_type_display', 'id_type', 'id_type_display',
             'id_number', 'id_proof_file', 'approval_status', 'approval_status_display',
             'rejection_reason', 'is_blocked', 'blocked_reason',
@@ -72,11 +75,25 @@ class VendorRegistrationSerializer(serializers.Serializer):
     id_proof_file = serializers.FileField()
 
 
+
+
 class ProductImageSerializer(serializers.ModelSerializer):
     """Serializer for ProductImage model"""
+    url = serializers.SerializerMethodField()
+    
     class Meta:
         model = ProductImage
-        fields = ['id', 'image', 'uploaded_at']
+        fields = ['id', 'url', 'uploaded_at']
+
+    def get_url(self, obj):
+        request = self.context.get('request')
+        # Use our new serve_product_image endpoint
+        # The URL structure is /vendor/api/product-images/<id>/
+        # But we can use reverse for robustness
+        path = reverse('serve_product_image', kwargs={'image_id': obj.id})
+        if request:
+            return request.build_absolute_uri(path)
+        return path
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -85,14 +102,37 @@ class ProductSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     category_display = serializers.CharField(source='get_category_display', read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
+    image = serializers.SerializerMethodField()
+    image_urls = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
         fields = [
             'id', 'vendor', 'vendor_name', 'name', 'description', 'category', 
-            'category_display', 'price', 'quantity', 'images', 'status', 
+            'category_display', 'price', 'quantity', 'images', 'image', 'image_urls', 'status', 
             'status_display', 'is_blocked', 'blocked_reason', 'created_at', 'updated_at'
         ]
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        first_image = obj.images.first()
+        if first_image:
+            path = reverse('serve_product_image', kwargs={'image_id': first_image.id})
+            if request:
+                return request.build_absolute_uri(path)
+            return path
+        return None
+
+    def get_image_urls(self, obj):
+        request = self.context.get('request')
+        urls = []
+        for img in obj.images.all():
+            path = reverse('serve_product_image', kwargs={'image_id': img.id})
+            if request:
+                urls.append(request.build_absolute_uri(path))
+            else:
+                urls.append(path)
+        return urls
         read_only_fields = [
             'id', 'vendor', 'is_blocked', 'blocked_reason', 'created_at', 'updated_at'
         ]
@@ -114,6 +154,61 @@ class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'description', 'category', 'vendor_name', 'price', 'quantity',
+            'id', 'name', 'category', 'vendor_name', 'price', 'quantity',
             'status', 'is_blocked', 'images', 'created_at'
         ]
+
+
+class OrderAddressSerializer(serializers.ModelSerializer):
+    """Serializer for address in order view"""
+    class Meta:
+        from user.models import Address
+        model = Address
+        fields = ['name', 'phone', 'email', 'address_line1', 'address_line2', 'city', 'state', 'pincode', 'country']
+
+
+class VendorOrderItemSerializer(serializers.ModelSerializer):
+    """Serializer for OrderItem objects for vendor view"""
+    order_id = serializers.CharField(source='order.order_number', read_only=True)
+    order_number = serializers.CharField(source='order.order_number', read_only=True)
+    product = serializers.CharField(source='product_name', read_only=True)
+    price = serializers.DecimalField(source='product_price', max_digits=10, decimal_places=2, read_only=True)
+    status = serializers.CharField(source='vendor_status', read_only=True)
+    date = serializers.DateTimeField(source='order.created_at', read_only=True, format="%d/%m/%Y")
+    payment_method = serializers.CharField(source='order.payment_method', read_only=True)
+    customer_address = serializers.SerializerMethodField()
+    customer_billing_address = OrderAddressSerializer(source='order.billing_address', read_only=True)
+
+    def get_customer_address(self, obj):
+        # Only show the address that was actually selected for this order.
+        # Do NOT fall back to other user addresses — that's a different user's data.
+        address = obj.order.delivery_address
+        if address:
+            return OrderAddressSerializer(address).data
+        return None
+
+    order_subtotal = serializers.DecimalField(source='order.subtotal', max_digits=12, decimal_places=2, read_only=True)
+    order_tax = serializers.DecimalField(source='order.tax_amount', max_digits=12, decimal_places=2, read_only=True)
+    order_shipping = serializers.DecimalField(source='order.shipping_cost', max_digits=12, decimal_places=2, read_only=True)
+    order_total = serializers.DecimalField(source='order.total_amount', max_digits=12, decimal_places=2, read_only=True)
+    
+    net_earning = serializers.SerializerMethodField()
+
+    class Meta:
+        from user.models import OrderItem
+        model = OrderItem
+        fields = ['id', 'order_id', 'order_number', 'product', 'quantity', 'price', 'status', 'date', 
+                  'payment_method', 'customer_address', 'customer_billing_address', 'order_subtotal', 'order_tax', 
+                  'order_shipping', 'order_total', 'commission_rate', 'commission_amount', 'net_earning']
+
+    def get_net_earning(self, obj):
+        total = obj.product_price * obj.quantity
+        return total - obj.commission_amount
+
+
+class VendorOrderItemStatusUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for vendor to update order item status"""
+    class Meta:
+        from user.models import OrderItem
+        model = OrderItem
+        fields = ['vendor_status']

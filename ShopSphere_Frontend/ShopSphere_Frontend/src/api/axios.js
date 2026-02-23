@@ -125,6 +125,83 @@ import axios from "axios";
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
+// ─── JWT AUTO-REFRESH INTERCEPTOR ───────────────────────────────────────────
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Only intercept 401 errors (not retried requests)
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      const refreshToken = localStorage.getItem("refreshToken");
+
+      // If no refresh token, redirect to login
+      if (!refreshToken) {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.href = "/login";
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        // Queue the request while token is being refreshed
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers["Authorization"] = `Bearer ${token}`;
+            return axios(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const res = await axios.post(`${API_BASE_URL}/api/token/refresh/`, {
+          refresh: refreshToken,
+        });
+
+        const newAccessToken = res.data.access;
+        localStorage.setItem("accessToken", newAccessToken);
+
+        // Update the failed request's auth header and retry
+        originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+        processQueue(null, newAccessToken);
+
+        return axios(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        // Refresh failed — clear tokens and go to login
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.href = "/login";
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+// ────────────────────────────────────────────────────────────────────────────
+
 // LOGIN
 
 export const loginUser = async (loginData) => {
@@ -341,5 +418,11 @@ export const deleteReview = async (productId) => {
 // TRENDING PRODUCTS (Public)
 export const getTrendingProducts = async () => {
   const response = await axios.get(`${API_BASE_URL}/trending/`);
+  return response.data;
+};
+
+// REVERSE GEOCODING (Public - uses backend proxy)
+export const reverseGeocode = async (lat, lon) => {
+  const response = await axios.get(`${API_BASE_URL}/api/reverse-geocode/?lat=${lat}&lon=${lon}`);
   return response.data;
 };

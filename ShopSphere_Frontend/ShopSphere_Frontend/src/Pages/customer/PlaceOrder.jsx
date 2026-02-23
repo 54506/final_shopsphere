@@ -76,16 +76,13 @@ function PlaceOrder() {
                 total_amount: totalAmount, // Optional depending on backend
 
                 items: cartObjects.map((item) => ({
-
+                    id: item.id,
                     name: item.name,
-
                     quantity: item.quantity,
-
                     price: item.price,
-
                 })),
 
-                delivery_address: address, // Pass address if backend needs it inline
+                address_id: address?.id, // Pass address ID to backend
 
             });
 

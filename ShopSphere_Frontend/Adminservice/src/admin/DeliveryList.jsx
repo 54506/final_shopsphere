@@ -1,16 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { PanelLeftClose, PanelLeftOpen, Users, ShieldCheck, ShieldAlert, Eye } from 'lucide-react';
+import {
+    PanelLeftClose,
+    PanelLeftOpen,
+    Users,
+    ShieldCheck,
+    ShieldAlert,
+    Eye,
+    Truck,
+    Activity,
+    Search,
+    Filter,
+    ArrowUpRight
+} from 'lucide-react';
 import { fetchAllDeliveryAgents, blockDeliveryAgent, unblockDeliveryAgent } from '../api/axios';
-import { motion as Motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
+import NotificationBell from '../components/NotificationBell';
 
 const DeliveryList = () => {
     const navigate = useNavigate();
+    const { isDarkMode } = useTheme();
     const [agents, setAgents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [filter, setFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const loadAgents = async () => {
         setIsLoading(true);
@@ -19,7 +35,6 @@ const DeliveryList = () => {
             setAgents(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Failed to fetch delivery agents", error);
-            alert("Failed to load agents");
         } finally {
             setIsLoading(false);
         }
@@ -29,162 +44,214 @@ const DeliveryList = () => {
         loadAgents();
     }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        sessionStorage.clear();
-        navigate('/');
-    };
-
     const handleBlockAction = async (id, isBlocked) => {
         try {
             if (isBlocked) {
                 await unblockDeliveryAgent(id);
-                alert("Agent unblocked");
             } else {
                 const reason = prompt("Enter blocking reason:") || "Blocked by administrator";
                 await blockDeliveryAgent(id, reason);
-                alert("Agent blocked");
             }
             await loadAgents();
         } catch (error) {
             console.error("Block action failed:", error);
-            alert("Action failed");
         }
     };
 
     const filteredAgents = agents.filter(agent => {
-        if (filter === 'all') return true;
-        if (filter === 'approved') return agent.approval_status === 'approved';
-        if (filter === 'pending') return agent.approval_status === 'pending';
-        if (filter === 'blocked') return agent.is_blocked;
-        return true;
+        const matchesFilter =
+            filter === 'all' ||
+            (filter === 'approved' && agent.approval_status === 'approved') ||
+            (filter === 'pending' && agent.approval_status === 'pending') ||
+            (filter === 'blocked' && agent.is_blocked);
+
+        const matchesSearch =
+            agent.user_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            agent.phone_number?.includes(searchQuery);
+
+        return matchesFilter && matchesSearch;
     });
 
     return (
-        <div className="flex h-screen bg-gray-50 font-sans text-slate-800">
+        <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
             <Sidebar
                 isSidebarOpen={isSidebarOpen}
                 activePage="Delivery Agents"
-                onLogout={handleLogout}
+                onLogout={() => navigate('/')}
             />
 
-            <main className="flex-1 overflow-y-auto transition-all duration-300">
-                <header className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-gray-100 px-8 py-4 flex items-center justify-between">
+            <div className="flex-1 flex flex-col min-w-0">
+                <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="p-2 text-slate-500 hover:bg-emerald-100 hover:text-emerald-900 rounded-lg transition-all"
-                        >
-                            {isSidebarOpen ? <PanelLeftClose className="w-6 h-6" /> : <PanelLeftOpen className="w-6 h-6" />}
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600 shadow-sm'}`}>
+                            {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
                         </button>
-                        <h1 className="text-2xl font-bold text-slate-800">Delivery Fleet</h1>
+                        <div>
+                            <h1 className={`text-lg font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Logistics Fleet</h1>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Global Fulfillment Registry</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                        <NotificationBell />
+                        <div className={`hidden lg:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest gap-2 ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                            <Truck className="w-3.5 h-3.5" /> Fleet Ops Active
+                        </div>
                     </div>
                 </header>
 
-                <div className="p-8 max-w-7xl mx-auto">
-                    <div className="flex gap-4 mb-8">
-                        {['all', 'approved', 'pending', 'blocked'].map((f) => (
-                            <button
-                                key={f}
-                                onClick={() => setFilter(f)}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${filter === f
-                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20'
-                                    : 'bg-white text-slate-400 border border-gray-100'}`}
-                            >
-                                {f}
-                            </button>
-                        ))}
+                <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+                        {/* Stats Summary */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            {[
+                                { label: 'Active Units', value: agents.filter(a => !a.is_blocked && a.approval_status === 'approved').length, icon: Truck, color: 'emerald' },
+                                { label: 'Total Fleet', value: agents.length, icon: Users, color: 'indigo' },
+                                { label: 'Approval Queue', value: agents.filter(a => a.approval_status === 'pending').length, icon: Activity, color: 'amber' },
+                                { label: 'Restricted Nodes', value: agents.filter(a => a.is_blocked).length, icon: ShieldAlert, color: 'rose' }
+                            ].map((stat, i) => (
+                                <div key={i} className={`p-6 rounded-[2rem] border transition-all duration-300 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color === 'indigo' ? (isDarkMode ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600') :
+                                            stat.color === 'emerald' ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600') :
+                                                stat.color === 'amber' ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600') :
+                                                    (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600')
+                                            }`}>
+                                            <stat.icon className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">{stat.label}</p>
+                                            <p className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Toolbar */}
+                        <div className={`p-4 rounded-[2rem] border transition-all duration-300 flex flex-col md:flex-row gap-4 items-center ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
+                            <div className="relative flex-1 w-full">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                <input
+                                    type="text"
+                                    placeholder="Trace agent by email or protocol ID..."
+                                    className={`w-full pl-11 pr-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-4 transition-all font-medium ${isDarkMode ? 'bg-slate-900/50 border-slate-800 text-white focus:ring-indigo-500/10 focus:border-indigo-500' : 'bg-slate-50 border-transparent text-slate-900 focus:ring-indigo-500/5'
+                                        }`}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                                {['all', 'approved', 'pending', 'blocked'].map((f) => (
+                                    <button
+                                        key={f}
+                                        onClick={() => setFilter(f)}
+                                        className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${filter === f
+                                            ? (isDarkMode ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20' : 'bg-slate-900 border-slate-800 text-white shadow-lg shadow-slate-900/20')
+                                            : (isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50')
+                                            }`}
+                                    >
+                                        {f}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Table */}
+                        <div className={`rounded-[2.5rem] border shadow-sm overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className={`border-b transition-colors duration-300 ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
+                                        <tr>
+                                            {['Agent Protocol', 'Vehicle Config', 'Compliance State', 'Grid Access', 'Operations'].map(h => (
+                                                <th key={h} className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className={`divide-y transition-colors duration-300 ${isDarkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
+                                        {isLoading ? (
+                                            Array(6).fill(0).map((_, i) => (
+                                                <tr key={i} className="animate-pulse">
+                                                    <td colSpan="5" className="px-8 py-8"><div className={`h-12 rounded-2xl w-full ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`} /></td>
+                                                </tr>
+                                            ))
+                                        ) : filteredAgents.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="5" className="px-8 py-24 text-center">
+                                                    <div className="flex flex-col items-center">
+                                                        <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100 shadow-sm'}`}>
+                                                            <Truck className="w-10 h-10 text-slate-300" />
+                                                        </div>
+                                                        <h3 className={`text-xl font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Fleet Ghosted</h3>
+                                                        <p className="text-xs text-slate-500 font-medium">No active units detected for current parameters.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ) : filteredAgents.map((agent) => (
+                                            <tr key={agent.id} className={`group transition-all hover:translate-x-1 ${isDarkMode ? 'hover:bg-indigo-500/5' : 'hover:bg-slate-50/50'}`}>
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 text-indigo-400' : 'bg-slate-50 border-slate-100 text-indigo-600 shadow-sm'}`}>
+                                                            <Users className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <div className={`text-sm font-bold truncate max-w-[200px] ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{agent.user_email}</div>
+                                                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-1">{agent.phone_number}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-100 text-slate-600 shadow-sm'
+                                                        }`}>
+                                                        {agent.vehicle_type}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${agent.approval_status === 'approved' ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border-emerald-100') :
+                                                        agent.approval_status === 'pending' ? (isDarkMode ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-amber-50 text-amber-600 border-amber-100') :
+                                                            (isDarkMode ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-600 border-rose-100')
+                                                        }`}>
+                                                        {agent.approval_status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    {agent.is_blocked ? (
+                                                        <span className="text-rose-500 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                                                            <ShieldAlert className="w-3.5 h-3.5" /> Blocked
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-emerald-500 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                                                            <ShieldCheck className="w-3.5 h-3.5" /> Fully Active
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-8 py-6 text-right">
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        <button
+                                                            onClick={() => navigate(`/delivery/review/${agent.id}`)}
+                                                            className={`p-2 rounded-xl transition-all ${isDarkMode ? 'bg-slate-800 text-indigo-400 hover:bg-slate-700' : 'bg-slate-50 text-indigo-600 hover:bg-indigo-100 border border-slate-100 hover:border-indigo-200 shadow-sm'}`}
+                                                        >
+                                                            <ArrowUpRight className="w-5 h-5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleBlockAction(agent.id, agent.is_blocked)}
+                                                            className={`p-2 rounded-xl transition-all border ${agent.is_blocked
+                                                                ? (isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-100 text-emerald-600')
+                                                                : (isDarkMode ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-rose-50 border-rose-100 text-rose-600')
+                                                                }`}
+                                                        >
+                                                            {agent.is_blocked ? <ShieldCheck className="w-5 h-5" /> : <ShieldAlert className="w-5 h-5" />}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-
-                    <Motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-                    >
-                        <div className="p-6 border-b border-gray-50 bg-gray-50/50 flex items-center gap-2">
-                            <Users className="w-5 h-5 text-emerald-600" />
-                            <h2 className="font-bold text-slate-700">Fleet Index</h2>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 border-b border-gray-100">
-                                    <tr>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Agent</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Vehicle</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Compliance</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Access</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Operations</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {isLoading ? (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-12 text-center text-slate-400 italic">Loading fleet data...</td>
-                                        </tr>
-                                    ) : filteredAgents.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-12 text-center text-slate-400 italic">No agents found.</td>
-                                        </tr>
-                                    ) : filteredAgents.map((agent) => (
-                                        <tr key={agent.id} className="hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="font-bold text-slate-900">{agent.user_email}</div>
-                                                <div className="text-xs text-slate-500">{agent.phone_number}</div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
-                                                    {agent.vehicle_type}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${agent.approval_status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                                    agent.approval_status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                                        'bg-rose-50 text-rose-600 border-rose-100'
-                                                    }`}>
-                                                    {agent.approval_status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                {agent.is_blocked ? (
-                                                    <span className="text-rose-600 flex items-center justify-center gap-1 text-[10px] font-black uppercase">
-                                                        <ShieldAlert className="w-3 h-3" /> Blocked
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-emerald-600 flex items-center justify-center gap-1 text-[10px] font-black uppercase">
-                                                        <ShieldCheck className="w-3 h-3" /> Active
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        onClick={() => navigate(`/delivery/review/${agent.id}`)}
-                                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                                        title="View Details"
-                                                    >
-                                                        <Eye className="w-5 h-5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleBlockAction(agent.id, agent.is_blocked)}
-                                                        className={`p-2 rounded-lg transition-all ${agent.is_blocked
-                                                            ? 'text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50'
-                                                            : 'text-rose-400 hover:text-rose-600 hover:bg-rose-50'
-                                                            }`}
-                                                        title={agent.is_blocked ? "Unblock" : "Block"}
-                                                    >
-                                                        {agent.is_blocked ? <ShieldCheck className="w-5 h-5" /> : <ShieldAlert className="w-5 h-5" />}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </Motion.div>
-                </div>
-            </main>
+                </main>
+            </div>
         </div>
     );
 };

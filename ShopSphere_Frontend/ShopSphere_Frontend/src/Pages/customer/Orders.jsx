@@ -915,12 +915,23 @@ function Orders() {
   }, [dispatch, navigate, allProducts]);
 
 
-  const toggleExpand = (transactionId) => {
+  const getStatusDetails = (order) => {
+    const status = (order.status || order.order_status || 'pending').toLowerCase();
+    const payment = (order.payment_status || 'pending').toLowerCase();
 
-    setExpandedOrder(expandedOrder === transactionId ? null : transactionId);
+    // Priority 1: Operational Status (Beyond initial state)
+    if (status === 'delivered') return { label: 'Delivered', bgColor: 'bg-emerald-50', textColor: 'text-emerald-600', borderColor: 'border-emerald-100', dotColor: 'bg-emerald-500' };
+    if (status === 'out_for_delivery') return { label: 'Out for Delivery', bgColor: 'bg-orange-50', textColor: 'text-orange-600', borderColor: 'border-orange-100', dotColor: 'bg-orange-500' };
+    if (status === 'shipping') return { label: 'In Transit', bgColor: 'bg-indigo-50', textColor: 'text-indigo-600', borderColor: 'border-indigo-100', dotColor: 'bg-indigo-500' };
+    if (status === 'confirmed') return { label: 'Confirmed', bgColor: 'bg-blue-50', textColor: 'text-blue-600', borderColor: 'border-blue-100', dotColor: 'bg-blue-500' };
+    if (status === 'cancelled') return { label: 'Cancelled', bgColor: 'bg-red-50', textColor: 'text-red-600', borderColor: 'border-red-100', dotColor: 'bg-red-500' };
 
+    // Priority 2: Payment Status
+    if (payment === 'completed') return { label: 'Paid', bgColor: 'bg-emerald-50', textColor: 'text-emerald-600', borderColor: 'border-emerald-100', dotColor: 'bg-emerald-500' };
+    if (payment === 'failed') return { label: 'Failed', bgColor: 'bg-red-50', textColor: 'text-red-600', borderColor: 'border-red-100', dotColor: 'bg-red-500' };
+
+    return { label: 'Order Placed', bgColor: 'bg-amber-50', textColor: 'text-amber-600', borderColor: 'border-amber-100', dotColor: 'bg-amber-500' };
   };
-
 
   if (isLoading) {
 
@@ -1059,312 +1070,270 @@ function Orders() {
 
       <div className="space-y-6">
 
-        {orders.map((order, index) => (
-
-          <motion.div
-
-            initial={{ opacity: 0, y: 20 }}
-
-            animate={{ opacity: 1, y: 0 }}
-
-            transition={{ delay: index * 0.05 }}
-
-            key={order.id || index}
-
-            className="group bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-2xl hover:shadow-gray-200/40 hover:border-orange-100"
-
-          >
-
-            {/* Order Header */}
-
-            <div
-
-              onClick={() => toggleExpand(order.id)}
-
-              className="p-6 cursor-pointer hover:bg-gray-50/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-
+        {orders.map((order, index) => {
+          const status = getStatusDetails(order);
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              key={order.id || index}
+              className="group bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-2xl hover:shadow-gray-200/40 hover:border-orange-100"
             >
+              {/* Order Header */}
+              <div
+                onClick={() => toggleExpand(order.id)}
+                className="p-6 cursor-pointer hover:bg-gray-50/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-5">
+                  <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-orange-400 shadow-inner group-hover:bg-orange-50 transition-colors">
+                    <Package size={28} />
+                  </div>
 
-              <div className="flex items-center gap-5">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <p className="font-black text-gray-900 text-lg uppercase tracking-tight">
+                        {order.transaction_id || `ORD-${order.id}`}
+                      </p>
+                      <span className={`text-[9px] font-black uppercase tracking-[2px] px-3 py-1 rounded-full border flex items-center gap-1.5 ${status.bgColor} ${status.textColor} ${status.borderColor}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${status.dotColor}`}></div>
+                        {status.label}
+                      </span>
+                    </div>
 
-                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-orange-400 shadow-inner group-hover:bg-orange-50 transition-colors">
 
-                  <Package size={28} />
+                    <p className="text-[11px] text-gray-400 font-bold flex items-center gap-2 uppercase tracking-widest">
+
+                      <Calendar size={12} className="text-gray-300" />
+
+                      {new Date(order.created_at).toLocaleDateString('en-IN', {
+
+                        day: '2-digit',
+
+                        month: 'short',
+
+                        year: 'numeric',
+
+                        hour: '2-digit',
+
+                        minute: '2-digit'
+
+                      })}
+
+                    </p>
+
+                  </div>
 
                 </div>
 
 
-                <div>
+                <div className="flex items-center justify-between sm:justify-end gap-10 border-t sm:border-t-0 pt-4 sm:pt-0">
 
-                  <div className="flex items-center gap-2 mb-1.5">
+                  <div className="text-left sm:text-right">
 
-                    <p className="font-black text-gray-900 text-lg uppercase tracking-tight">
+                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-[2px] mb-0.5">Grand Total</p>
 
-                      {order.transaction_id || `ORD-${order.id}`}
+                    <p className="text-2xl font-black text-orange-400 tracking-tighter">
+
+                      ₹{Number(order.total_amount).toFixed(2)}
 
                     </p>
-
-                    <span className={`text-[9px] font-black uppercase tracking-[2px] px-3 py-1 rounded-full border flex items-center gap-1.5
-
-                      ${order.payment_status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-
-                        order.payment_status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-
-                          order.payment_status === 'failed' ? 'bg-red-50 text-red-600 border-red-100' :
-
-                            'bg-gray-50 text-gray-600 border-gray-100'}`}>
-
-                      <div className={`w-1.5 h-1.5 rounded-full animate-pulse
-
-                        ${order.payment_status === 'completed' ? 'bg-emerald-500' :
-
-                          order.payment_status === 'pending' ? 'bg-amber-500' :
-
-                            order.payment_status === 'failed' ? 'bg-red-500' :
-
-                              'bg-gray-500'}`}></div>
-
-                      {order.payment_status === 'completed' ? 'PAID' : order.payment_status || 'PENDING'}
-
-                    </span>
 
                   </div>
 
 
-                  <p className="text-[11px] text-gray-400 font-bold flex items-center gap-2 uppercase tracking-widest">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${expandedOrder === order.id ? "bg-gray-900 text-white rotate-180" : "bg-gray-50 text-gray-400"}`}>
 
-                    <Calendar size={12} className="text-gray-300" />
+                    <ChevronDown size={22} />
 
-                    {new Date(order.created_at).toLocaleDateString('en-IN', {
-
-                      day: '2-digit',
-
-                      month: 'short',
-
-                      year: 'numeric',
-
-                      hour: '2-digit',
-
-                      minute: '2-digit'
-
-                    })}
-
-                  </p>
+                  </div>
 
                 </div>
 
               </div>
 
 
-              <div className="flex items-center justify-between sm:justify-end gap-10 border-t sm:border-t-0 pt-4 sm:pt-0">
+              {/* Order Details */}
 
-                <div className="text-left sm:text-right">
+              < AnimatePresence >
 
-                  <p className="text-[10px] font-black text-gray-300 uppercase tracking-[2px] mb-0.5">Grand Total</p>
+                {expandedOrder === order.id && (
 
-                  <p className="text-2xl font-black text-orange-400 tracking-tighter">
+                  <motion.div
 
-                    ₹{Number(order.total_amount).toFixed(2)}
+                    initial={{ height: 0, opacity: 0 }}
 
-                  </p>
+                    animate={{ height: "auto", opacity: 1 }}
 
-                </div>
+                    exit={{ height: 0, opacity: 0 }}
 
+                    transition={{ duration: 0.3, ease: "easeOut" }}
 
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${expandedOrder === order.id ? "bg-gray-900 text-white rotate-180" : "bg-gray-50 text-gray-400"}`}>
+                  >
 
-                  <ChevronDown size={22} />
+                    <div className="border-t border-gray-50 px-8 py-10 bg-gray-50/20">
 
-                </div>
+                      <div className="flex items-center gap-3 mb-6">
 
-              </div>
+                        <Truck size={16} className="text-orange-400" />
 
-            </div>
+                        <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[3px]">
 
+                          Package Contents
 
-            {/* Order Details */}
+                        </h3>
 
-            < AnimatePresence >
-
-              {expandedOrder === order.id && (
-
-                <motion.div
-
-                  initial={{ height: 0, opacity: 0 }}
-
-                  animate={{ height: "auto", opacity: 1 }}
-
-                  exit={{ height: 0, opacity: 0 }}
-
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-
-                >
-
-                  <div className="border-t border-gray-50 px-8 py-10 bg-gray-50/20">
-
-                    <div className="flex items-center gap-3 mb-6">
-
-                      <Truck size={16} className="text-orange-400" />
-
-                      <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[3px]">
-
-                        Package Contents
-
-                      </h3>
-
-                    </div>
+                      </div>
 
 
-                    <div className="space-y-4">
+                      <div className="space-y-4">
 
-                      {order.items?.map((item, idx) => (
+                        {order.items?.map((item, idx) => (
 
-                        <div
+                          <div
 
-                          key={idx}
+                            key={idx}
 
-                          className="flex justify-between items-center bg-white rounded-3xl p-5 border border-gray-100 shadow-sm transition-all hover:border-blue-100 group/item"
+                            className="flex justify-between items-center bg-white rounded-3xl p-5 border border-gray-100 shadow-sm transition-all hover:border-blue-100 group/item"
 
-                        >
+                          >
 
-                          <div className="flex items-center gap-5">
+                            <div className="flex items-center gap-5">
 
-                            <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-xs font-black text-gray-500 border border-gray-100 group-hover/item:bg-gradient-to-r from-orange-400 to-purple-500 group-hover/item:text-white group-hover/item:border-orange-400 transition-all">
+                              <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-xs font-black text-gray-500 border border-gray-100 group-hover/item:bg-gradient-to-r from-orange-400 to-purple-500 group-hover/item:text-white group-hover/item:border-orange-400 transition-all">
 
-                              {item.quantity}×
+                                {item.quantity}×
 
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-black text-gray-900 line-clamp-1 mb-1 group-hover:text-orange-400 transition-colors">
-                                {item.product_name}
-                              </h4>
-                              {item.user_review && (
-                                <div className="flex flex-col gap-1 mb-2 bg-orange-50/50 p-3 rounded-xl border border-orange-100/50 w-fit max-w-md">
-                                  <div className="flex gap-0.5">
-                                    {[...Array(5)].map((_, i) => (
-                                      <FaStar
-                                        key={i}
-                                        className={`text-[10px] ${i < item.user_review.rating ? "text-yellow-400" : "text-gray-200"}`}
-                                      />
-                                    ))}
-                                  </div>
-                                  <p className="text-[11px] text-gray-600 font-medium italic line-clamp-2">
-                                    "{item.user_review.comment}"
-                                  </p>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-3">
-                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-
-                                  Unit Price: ₹{Number(item.product_price).toFixed(2)}
-
-                                </span>
                               </div>
+
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-black text-gray-900 line-clamp-1 mb-1 group-hover:text-orange-400 transition-colors">
+                                  {item.product_name}
+                                </h4>
+                                {item.user_review && (
+                                  <div className="flex flex-col gap-1 mb-2 bg-orange-50/50 p-3 rounded-xl border border-orange-100/50 w-fit max-w-md">
+                                    <div className="flex gap-0.5">
+                                      {[...Array(5)].map((_, i) => (
+                                        <FaStar
+                                          key={i}
+                                          className={`text-[10px] ${i < item.user_review.rating ? "text-yellow-400" : "text-gray-200"}`}
+                                        />
+                                      ))}
+                                    </div>
+                                    <p className="text-[11px] text-gray-600 font-medium italic line-clamp-2">
+                                      "{item.user_review.comment}"
+                                    </p>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+
+                                    Unit Price: ₹{Number(item.product_price).toFixed(2)}
+
+                                  </span>
+                                </div>
+                              </div>
+
                             </div>
 
-                          </div>
 
-
-                          <div className="flex items-center gap-4">
-                            {item.user_review ? (
-                              item.user_review.can_edit_review ? (
+                            <div className="flex items-center gap-4">
+                              {item.user_review ? (
+                                item.user_review.can_edit_review ? (
+                                  <button
+                                    onClick={() => openReviewModal(item)}
+                                    className="px-4 py-2 bg-orange-50 text-orange-400 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gradient-to-r from-orange-400 to-purple-500 hover:text-white transition-all border border-orange-100 shadow-sm"
+                                  >
+                                    Alter the Review
+                                  </button>
+                                ) : (
+                                  <span className="text-[9px] font-black text-gray-400 uppercase bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 tracking-wider">
+                                    Review Closed
+                                  </span>
+                                )
+                              ) : (
                                 <button
                                   onClick={() => openReviewModal(item)}
                                   className="px-4 py-2 bg-orange-50 text-orange-400 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gradient-to-r from-orange-400 to-purple-500 hover:text-white transition-all border border-orange-100 shadow-sm"
                                 >
-                                  Alter the Review
+                                  Write a Review
                                 </button>
-                              ) : (
-                                <span className="text-[9px] font-black text-gray-400 uppercase bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 tracking-wider">
-                                  Review Closed
-                                </span>
-                              )
-                            ) : (
-                              <button
-                                onClick={() => openReviewModal(item)}
-                                className="px-4 py-2 bg-orange-50 text-orange-400 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gradient-to-r from-orange-400 to-purple-500 hover:text-white transition-all border border-orange-100 shadow-sm"
-                              >
-                                Write a Review
-                              </button>
-                            )}
-                            <span className="font-black text-gray-900">
-                              ₹{(Number(item.product_price) * item.quantity).toFixed(2)}
-                            </span>
+                              )}
+                              <span className="font-black text-gray-900">
+                                ₹{(Number(item.product_price) * item.quantity).toFixed(2)}
+                              </span>
+                            </div>
                           </div>
-                        </div>
 
-                      ))}
-
-                    </div>
-
-
-                    <div className="mt-10 pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-
-                      <div className="flex items-start gap-4">
-
-                        <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center shrink-0">
-
-                          <AlertCircle size={18} className="text-orange-400" />
-
-                        </div>
-
-                        <div>
-
-                          <p className="text-[11px] font-black text-gray-900 uppercase tracking-widest mb-1">Payment Info</p>
-
-                          <p className="text-xs text-gray-400 font-medium capitalize">Method: {order.payment_method?.replace('_', ' ')}</p>
-
-                          <p className="text-xs text-gray-400 font-medium truncate max-w-[200px]">ID: {order.transaction_id || 'N/A'}</p>
-
-                        </div>
-
+                        ))}
 
                       </div>
 
 
-                      <div className="flex gap-3 w-full md:w-auto">
+                      <div className="mt-10 pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
 
-                        <button
+                        <div className="flex items-start gap-4">
 
-                          className="flex-1 md:flex-none px-6 py-3 bg-white text-gray-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-all border border-gray-200 shadow-sm"
+                          <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center shrink-0">
 
-                        >
+                            <AlertCircle size={18} className="text-orange-400" />
 
-                          Need Help?
+                          </div>
 
-                        </button>
+                          <div>
 
-                        <button
-                          onClick={() => navigate(`/track-order/${order.id}`)}
-                          className="flex-1 md:flex-none px-8 py-3 bg-gradient-to-r from-orange-400 to-purple-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:from-orange-600 hover:to-purple-600 transition-all shadow-xl shadow-orange-200"
-                        >
-                          Track Order
-                        </button>
-                        <button
-                          className="flex-1 md:flex-none px-8 py-3 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200"
-                        >
-                          Invoice
+                            <p className="text-[11px] font-black text-gray-900 uppercase tracking-widest mb-1">Payment Info</p>
 
-                        </button>
+                            <p className="text-xs text-gray-400 font-medium capitalize">Method: {order.payment_method?.replace('_', ' ')}</p>
+
+                            <p className="text-xs text-gray-400 font-medium truncate max-w-[200px]">ID: {order.transaction_id || 'N/A'}</p>
+
+                          </div>
+
+
+                        </div>
+
+
+                        <div className="flex gap-3 w-full md:w-auto">
+
+                          <button
+
+                            className="flex-1 md:flex-none px-6 py-3 bg-white text-gray-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-all border border-gray-200 shadow-sm"
+
+                          >
+
+                            Need Help?
+
+                          </button>
+
+                          <button
+                            onClick={() => navigate(`/track-order/${order.id}`)}
+                            className="flex-1 md:flex-none px-8 py-3 bg-gradient-to-r from-orange-400 to-purple-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:from-orange-600 hover:to-purple-600 transition-all shadow-xl shadow-orange-200"
+                          >
+                            Track Order
+                          </button>
+                          <button
+                            className="flex-1 md:flex-none px-8 py-3 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200"
+                          >
+                            Invoice
+
+                          </button>
+
+                        </div>
 
                       </div>
 
                     </div>
 
-                  </div>
+                  </motion.div>
 
-                </motion.div>
+                )}
 
-              )}
+              </AnimatePresence>
 
-            </AnimatePresence>
-
-          </motion.div>
-
-        ))
-
-        }
+            </motion.div>
+          );
+        })}
 
       </div >
 

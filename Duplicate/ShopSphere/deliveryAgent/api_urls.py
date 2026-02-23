@@ -4,7 +4,8 @@ from .api_views import (
     DeliveryAgentDashboardView, DeliveryAssignmentViewSet,
     DeliveryTrackingViewSet, DeliveryEarningsViewSet,
     DeliveryPaymentViewSet, DeliveryDailyStatsViewSet,
-    DeliveryFeedbackViewSet, DeliveryAgentProfileViewSet
+    DeliveryFeedbackViewSet, DeliveryAgentProfileViewSet,
+    UpdateOrderStatusView,
 )
 
 # Create router for viewsets
@@ -23,7 +24,11 @@ urlpatterns = [
     
     # Custom registration path for easier access
     path('register/', DeliveryAgentProfileViewSet.as_view({'post': 'register'}), name='delivery_register'),
+
+    # Update order status (pickup / in_transit / failed)
+    path('assignments/<int:pk>/update-status/', UpdateOrderStatusView.as_view(), name='update_order_status'),
     
     # Routed endpoints
     path('', include(router.urls)),
 ]
+

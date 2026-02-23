@@ -119,6 +119,8 @@ class Address(models.Model):
     state = models.CharField(max_length=100)
     pincode = models.CharField(max_length=10)
     country = models.CharField(max_length=100, default='India')
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -136,7 +138,8 @@ class Order(models.Model):
     ORDER_STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
-        ('shipping', 'Shipping'),
+        ('shipping', 'In Transit'),
+        ('out_for_delivery', 'Out for Delivery'),
         ('delivered', 'Delivered'),
         ('cancelled', 'Cancelled'),
         ('returned', 'Returned'),
@@ -151,7 +154,8 @@ class Order(models.Model):
 
     user = models.ForeignKey(AuthUser, on_delete=models.CASCADE, related_name='orders')
     order_number = models.CharField(max_length=50, unique=True)
-    delivery_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True)
+    delivery_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, related_name='delivery_orders')
+    billing_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='billing_orders')
     
     # Order status
     status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='pending')
@@ -214,6 +218,10 @@ class OrderItem(models.Model):
         ('cancelled', 'Cancelled'),
     ]
     vendor_status = models.CharField(max_length=20, choices=VENDOR_STATUS_CHOICES, default='received')
+
+    # Commission Snapshot (Requirements: must be derived from category and snapshotted)
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Commission % at time of purchase")
+    commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Calculated commission amount")
 
     class Meta:
         ordering = ['-order__created_at']
@@ -327,9 +335,9 @@ class VendorReview(models.Model):
 class UserWallet(models.Model):
     """User wallet for storing balance and transaction history"""
     user = models.OneToOneField(AuthUser, on_delete=models.CASCADE, related_name='wallet')
-    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    total_credited = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    total_debited = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_credited = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_debited = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -343,8 +351,9 @@ class UserWallet(models.Model):
     def add_balance(self, amount, description=''):
         """Add balance to wallet"""
         if amount > 0:
-            self.balance += amount
-            self.total_credited += amount
+            amount = Decimal(str(amount))
+            self.balance = Decimal(str(self.balance)) + amount
+            self.total_credited = Decimal(str(self.total_credited)) + amount
             self.save()
             WalletTransaction.objects.create(
                 wallet=self,

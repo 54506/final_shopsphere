@@ -10,7 +10,10 @@ import Profile, { ProfileInfoTab, OrdersTab, AddressTab, WishlistTab } from "../
 import SellerPage from "../Pages/customer/SellerPage";
 import DeliveryDashboard from "../Pages/delivery/dashboard";
 import AssignedOrders from "../Pages/delivery/assignedorder";
+import DeliveryProfile from "../Pages/delivery/Profile";
+import DeliveryOrderDetail from "../Pages/delivery/DeliveryOrderDetail";
 import EarningsPage from "../Pages/delivery/earnings";
+import DeliveryHistory from "../Pages/delivery/History";
 import LandingPage from "../Components/common/LandingPage";
 import AccountVerification from "../Pages/customer/Accountverification";
 import VerifyOTP from "../Pages/customer/VerifyOTP";
@@ -29,12 +32,20 @@ import Orders from "../Pages/vendor/Orders";
 import AddProduct from "../Pages/vendor/AddProduct";
 import Products from "../Pages/vendor/Products";
 import Earnings from "../Pages/vendor/Earnings";
+import FeeStructure from "../Pages/vendor/FeeStructure";
+import VendorProfile from "../Pages/vendor/VendorProfile";
 import VendorLayout from "../Pages/vendor/VendorLayout";
 import DeliveryLayout from "../Pages/delivery/DeliveryLayout";
 import ForgotPassword from "../Pages/customer/ForgotPassword";
 import ResetPassword from "../Pages/customer/ResetPassword";
 import PlaceOrder from "../Pages/customer/PlaceOrder";
 import OrderTracking from "../Pages/customer/OrderTracking";
+import DeliveryAccountVerification from "../Pages/delivery/AccountVerification";
+import DeliveryVerifyOTP from "../Pages/delivery/VerifyOTP";
+import DeliveryIdentityDetails from "../Pages/delivery/IdentityDetails";
+import DeliveryVehicleOps from "../Pages/delivery/VehicleOps";
+import DeliveryBankDocs from "../Pages/delivery/BankDocs";
+
 
 function AppRoutes() {
     const hasSeenLanding = sessionStorage.getItem("hasSeenLanding");
@@ -95,7 +106,8 @@ function AppRoutes() {
                 <Route path="/vendoraddproduct" element={<AddProduct />} />
                 <Route path="/vendororders" element={<Orders />} />
                 <Route path="/vendorearning" element={<Earnings />} />
-
+                <Route path="/vendorfeestructure" element={<FeeStructure />} />
+                <Route path="/vendorprofile" element={<VendorProfile />} />
             </Route>
 
 
@@ -108,12 +120,23 @@ function AppRoutes() {
             <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/track-order/:orderId" element={<OrderTracking />} />
 
+            {/* Delivery Registration Routes */}
+            <Route path="/delivery/account-verification" element={<DeliveryAccountVerification />} />
+            <Route path="/delivery/verify-otp" element={<DeliveryVerifyOTP />} />
+            <Route path="/delivery/identity" element={<DeliveryIdentityDetails />} />
+            <Route path="/delivery/vehicle-ops" element={<DeliveryVehicleOps />} />
+            <Route path="/delivery/bank-docs" element={<DeliveryBankDocs />} />
+
             {/* Delivery Routes */}
             <Route path="/delivery" element={<DeliveryAgentLogin onLoginSuccess={() => console.log("Delivery Login Successful")} />} />
+
             <Route element={<DeliveryLayout />}>
                 <Route path="/delivery/dashboard" element={<DeliveryDashboard />} />
                 <Route path="/delivery/assigned" element={<AssignedOrders />} />
+                <Route path="/delivery/history" element={<DeliveryHistory />} />
                 <Route path="/delivery/earnings" element={<EarningsPage />} />
+                <Route path="/delivery/profile" element={<DeliveryProfile />} />
+                <Route path="/delivery/order/:id" element={<DeliveryOrderDetail />} />
             </Route>
 
             {/* Fallback */}

@@ -16,36 +16,67 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+from django.urls import reverse
+
 class ProductImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductImage
         fields = ['id', 'image', 'uploaded_at']
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        path = reverse('serve_product_image', kwargs={'image_id': obj.id})
+        if request:
+            return request.build_absolute_uri(path)
+        return path
 
 
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     vendor_name = serializers.CharField(source='vendor.shop_name', read_only=True)
+    image = serializers.SerializerMethodField()
+    image_urls = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
-    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'description', 'category', 'price', 
-            'quantity', 'images', 'status', 'is_blocked', 'created_at', 
-            'vendor_name', 'average_rating', 'review_count'
+            'quantity', 'images', 'image', 'image_urls', 'status', 
+            'is_blocked', 'created_at', 'vendor_name', 'average_rating'
         ]
 
     def get_average_rating(self, obj):
+        # If already annotated (like in get_trending_products), use that
+        if hasattr(obj, 'average_rating'):
+            return obj.average_rating
+        # Otherwise calculate it
         from django.db.models import Avg
-        from .models import Review
-        avg = Review.objects.filter(Product=obj).aggregate(Avg('rating'))['rating__avg']
-        return round(avg, 1) if avg else 0
+        avg = obj.reviews.aggregate(Avg('rating'))['rating__avg']
+        return avg or 0.0
 
-    def get_review_count(self, obj):
-        from .models import Review
-        return Review.objects.filter(Product=obj).count()
+    def get_image(self, obj):
+        request = self.context.get('request')
+        first_image = obj.images.first()
+        if first_image:
+            path = reverse('serve_product_image', kwargs={'image_id': first_image.id})
+            if request:
+                return request.build_absolute_uri(path)
+            return path
+        return None
 
+    def get_image_urls(self, obj):
+        request = self.context.get('request')
+        urls = []
+        for img in obj.images.all():
+            path = reverse('serve_product_image', kwargs={'image_id': img.id})
+            if request:
+                urls.append(request.build_absolute_uri(path))
+            else:
+                urls.append(path)
+        return urls
 
 
 class AddressSerializer(serializers.ModelSerializer):
@@ -55,57 +86,37 @@ class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
         fields = ['id', 'user', 'name', 'phone', 'email', 'address_line1', 'address_line2',
-                  'city', 'state', 'pincode', 'country', 'is_default', 'created_at', 'address']
+                  'city', 'state', 'pincode', 'country', 'latitude', 'longitude', 'is_default', 'created_at', 'address']
         read_only_fields = ['user']
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    user_review = serializers.SerializerMethodField()
-    product = serializers.SerializerMethodField()
-
     class Meta:
         model = OrderItem
-        fields = ['id', 'order', 'product', 'vendor', 'product_name', 'product_price', 'quantity', 'subtotal', 'vendor_status', 'user_review']
+        fields = ['id', 'product', 'vendor', 'product_name', 'product_price', 'quantity', 'subtotal', 'vendor_status']
 
-    def get_product(self, obj):
-        if obj.product_id:
-            return obj.product_id
-        # Fallback: Fix on the fly if product is missing but name exists
-        from vendor.models import Product
-        p = Product.objects.filter(name=obj.product_name).first()
-        if p:
-            # Optionally update the object to avoid future lookups
-            obj.product = p
-            obj.save()
-            return p.id
-        return None
 
-    def get_user_review(self, obj):
-        request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return None
-            
-        product_id = obj.product_id
-        if not product_id:
-            from vendor.models import Product
-            p = Product.objects.filter(name=obj.product_name).first()
-            product_id = p.id if p else None
-            
-        if product_id:
-            from .models import Review
-            review = Review.objects.filter(user=request.user, Product_id=product_id).first()
-            if review:
-                return ReviewSerializer(review, context=self.context).data
-        return None
+class OrderTrackingSerializer(serializers.ModelSerializer):
+    class Meta:
+        from .models import OrderTracking
+        model = OrderTracking
+        fields = ['status', 'location', 'timestamp', 'notes']
+    
+    timestamp = serializers.DateTimeField(read_only=True)
 
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    delivery_address = AddressSerializer(read_only=True)
+    billing_address = AddressSerializer(read_only=True)
+    tracking_history = OrderTrackingSerializer(many=True, read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
     
     class Meta:
         model = Order
-        fields = ['id', 'user', 'payment_method', 'payment_status', 'total_amount', 
-                  'status', 'delivery_address', 'created_at', 'items']
+        fields = ['id', 'order_number', 'payment_method', 'payment_status', 'transaction_id',
+                  'subtotal', 'tax_amount', 'shipping_cost', 'total_amount', 
+                  'status', 'delivery_address', 'billing_address', 'created_at', 'items', 'tracking_history']
 
 
 class CartItemSerializer(serializers.ModelSerializer):
@@ -218,49 +229,13 @@ class CouponUsageSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     username = serializers.SerializerMethodField()
     product_id = serializers.IntegerField(source='Product.id', read_only=True)
-    can_edit_review = serializers.SerializerMethodField()
-    days_left = serializers.SerializerMethodField()
 
     class Meta:
         model = Review
-        fields = ['id', 'user', 'username', 'Product', 'product_id', 'reviewer_name', 'rating', 'comment', 'pictures', 'created_at', 'can_edit_review', 'days_left']
+        fields = ['id', 'user', 'username', 'Product', 'product_id', 'reviewer_name', 'rating', 'comment', 'pictures', 'created_at']
         read_only_fields = ['user', 'Product']
 
     def get_username(self, obj):
         if obj.user:
             return obj.user.username
         return obj.reviewer_name or "Anonymous"
-
-    def get_can_edit_review(self, obj):
-        from django.utils import timezone
-        from django.conf import settings
-        now = timezone.now()
-        
-        # If USE_TZ is False, timezone.now() might still be aware if not configured otherwise.
-        # Ensure comparison is safe.
-        if not settings.USE_TZ and timezone.is_aware(now):
-            now = timezone.make_naive(now)
-            
-        created_at = obj.created_at
-        if timezone.is_aware(created_at):
-            created_at = timezone.make_naive(created_at)
-            
-        time_diff = now - created_at
-        return time_diff.days < 5
-
-    def get_days_left(self, obj):
-        from django.utils import timezone
-        from django.conf import settings
-        now = timezone.now()
-        
-        if not settings.USE_TZ and timezone.is_aware(now):
-            now = timezone.make_naive(now)
-            
-        created_at = obj.created_at
-        if timezone.is_aware(created_at):
-            created_at = timezone.make_naive(created_at)
-            
-        time_diff = now - created_at
-        left = 5 - time_diff.days
-        return max(0, left)
-

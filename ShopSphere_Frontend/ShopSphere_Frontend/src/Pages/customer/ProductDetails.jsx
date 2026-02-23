@@ -48,9 +48,8 @@ const ProductDetails = () => {
         if (!path) return "/public/placeholder.jpg";
         if (path.startsWith('http')) return path;
         const base = "http://127.0.0.1:8000";
-        if (path.startsWith('/media/')) return `${base}${path}`;
-        if (path.startsWith('media/')) return `${base}/${path}`;
-        return `${base}/media/${path}`;
+        if (path.startsWith('/')) return `${base}${path}`;
+        return `${base}/${path}`;
     };
 
     useEffect(() => {
@@ -189,7 +188,18 @@ const ProductDetails = () => {
             navigate("/login");
             return;
         }
+
+        // Add to cart first
         dispatch(AddToCart({ ...product, quantity }));
+
+        // Check if an address is already selected
+        const storedAddress = localStorage.getItem("selectedAddress");
+        if (!storedAddress) {
+            toast.error("Please select a delivery address in the cart first");
+            navigate("/cart"); // Go to cart where address selection happens
+            return;
+        }
+
         navigate("/checkout");
     };
 

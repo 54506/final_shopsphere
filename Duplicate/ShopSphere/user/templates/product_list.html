@@ -137,8 +137,10 @@
     <div class="grid">
         {% for product in products %}
         <div class="card">
-            {% if product.images.exists %}
-            <img src="{{ product.images.first.image.url }}" alt="{{ product.name }}"
+            {# Optimized: Use the first item from the prefetched 'all' set #}
+            {% with product.images.all.0 as first_image %}
+            {% if first_image %}
+            <img src="{{ first_image.image.url }}" alt="{{ product.name }}"
                 style="height: 150px; width: 100%; object-fit: cover; border-radius: 10px; margin-bottom: 15px;">
             {% else %}
             <div
@@ -146,6 +148,7 @@
                 📦
             </div>
             {% endif %}
+            {% endwith %}
             <h3>{{ product.name }}</h3>
             <p class="price">${{ product.price }}</p>
             <p
@@ -154,6 +157,21 @@
             <a href="{% url 'add_to_cart' product.id %}" class="btn">Add to Cart</a>
         </div>
         {% endfor %}
+    </div>
+
+    <!-- Pagination Controls -->
+    <div style="text-align: center; padding: 20px 40px 60px;">
+        {% if products.has_previous %}
+        <a href="?page={{ products.previous_page_number }}" class="btn" style="margin-right: 10px;">&laquo; Previous</a>
+        {% endif %}
+
+        <span style="margin: 0 15px; color: #ccc; font-weight: 300;">
+            Page {{ products.number }} of {{ products.paginator.num_pages }}
+        </span>
+
+        {% if products.has_next %}
+        <a href="?page={{ products.next_page_number }}" class="btn" style="margin-left: 10px;">Next &raquo;</a>
+        {% endif %}
     </div>
 </body>
 
