@@ -20,7 +20,7 @@ import {
     Banknote,
     Zap
 } from 'lucide-react';
-import { fetchAdminOrderDetail, triggerAssignment, updateDeliveryStatus, completeDeliveryOTP } from '../api/axios';
+import { fetchAdminOrderDetail, triggerAssignment, updateDeliveryStatus, completeDeliveryOTP, logout } from '../api/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 
@@ -108,7 +108,7 @@ const OrderDetail = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Orders" onLogout={() => window.location.href = '/'} />
+            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Orders" onLogout={logout} />
 
             <main className="flex-1 overflow-y-auto">
                 <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-40 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
@@ -193,8 +193,18 @@ const OrderDetail = () => {
                                             className={`flex items-center justify-between p-6 rounded-3xl border transition-all group ${isDarkMode ? 'bg-slate-900/30 border-slate-800 hover:border-indigo-500/30' : 'bg-slate-50 border-transparent hover:border-indigo-200'}`}
                                         >
                                             <div className="flex items-center gap-6">
-                                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-700' : 'bg-white border-slate-200 text-slate-300 group-hover:text-indigo-600'}`}>
-                                                    <Package className="w-8 h-8" />
+                                                <div className={`w-16 h-16 rounded-2xl overflow-hidden border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm group-hover:scale-105'}`}>
+                                                    {item.product_image ? (
+                                                        <img
+                                                            src={item.product_image.startsWith('http') ? item.product_image : `http://localhost:8000${item.product_image}`}
+                                                            alt={item.product_name}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                                            <Package size={24} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <p className={`text-base font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{item.product_name}</p>

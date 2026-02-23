@@ -21,6 +21,7 @@ import Sidebar from '../components/Sidebar';
 import { useProducts } from '../context/ProductContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from '../components/NotificationBell';
+import { logout } from '../api/axios';
 
 const DEBOUNCE_MS = 400;
 
@@ -84,7 +85,7 @@ const ProductManagement = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Products" onLogout={() => navigate('/')} />
+            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Products" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0">
                 <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
@@ -187,13 +188,20 @@ const ProductManagement = () => {
                                                         <div className="flex items-center gap-4">
                                                             <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center overflow-hidden transition-transform group-hover:scale-110 duration-500 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
                                                                 {product.images?.[0]?.url ? (
-                                                                    <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover" />
+                                                                    <img
+                                                                        src={product.images[0].url.startsWith('http') ? product.images[0].url : `http://localhost:8000${product.images[0].url}`}
+                                                                        alt={product.name}
+                                                                        className="w-full h-full object-cover"
+                                                                    />
                                                                 ) : (
                                                                     <Package className="w-6 h-6 text-slate-300" />
                                                                 )}
                                                             </div>
                                                             <div>
-                                                                <p className={`text-sm font-bold truncate max-w-[180px] ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{product.name}</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{product.brand}</span>
+                                                                    <p className={`text-sm font-bold truncate max-w-[150px] ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{product.name}</p>
+                                                                </div>
                                                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-1">ID: {product.id}</p>
                                                             </div>
                                                         </div>
@@ -313,7 +321,7 @@ const ProductManagement = () => {
                             <div className={`w-full md:w-1/2 p-8 flex flex-col border-b md:border-b-0 md:border-r ${isDarkMode ? 'bg-slate-950/30 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
                                 <div className={`flex-1 min-h-[400px] mb-6 relative rounded-[2.5rem] overflow-hidden border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-inner'}`}>
                                     <img
-                                        src={selectedProduct.activeImage || (selectedProduct.images?.[0]?.url || '')}
+                                        src={selectedProduct.activeImage ? (selectedProduct.activeImage.startsWith('http') ? selectedProduct.activeImage : `http://localhost:8000${selectedProduct.activeImage}`) : (selectedProduct.images?.[0]?.url ? (selectedProduct.images[0].url.startsWith('http') ? selectedProduct.images[0].url : `http://localhost:8000${selectedProduct.images[0].url}`) : '')}
                                         alt={selectedProduct.name}
                                         className="w-full h-full object-contain p-8"
                                     />
@@ -332,7 +340,7 @@ const ProductManagement = () => {
                                                 onClick={() => setSelectedProduct({ ...selectedProduct, activeImage: img.url })}
                                                 className={`flex-shrink-0 w-20 h-20 rounded-2xl border-4 transition-all overflow-hidden bg-white ${selectedProduct.activeImage === img.url || (!selectedProduct.activeImage && idx === 0) ? 'border-indigo-600 scale-95 shadow-xl' : (isDarkMode ? 'border-slate-800 hover:border-slate-700' : 'border-white hover:border-slate-200')}`}
                                             >
-                                                <img src={img.url} alt="Preview" className="w-full h-full object-cover" />
+                                                <img src={img.url.startsWith('http') ? img.url : `http://localhost:8000${img.url}`} alt="Preview" className="w-full h-full object-cover" />
                                             </button>
                                         ))}
                                     </div>
@@ -355,7 +363,7 @@ const ProductManagement = () => {
                                     </div>
 
                                     <div>
-                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Entity Classification</p>
+                                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{selectedProduct.brand}</p>
                                         <h2 className={`text-3xl font-black tracking-tight leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{selectedProduct.name}</h2>
                                         <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-2">{selectedProduct.category}</p>
                                     </div>

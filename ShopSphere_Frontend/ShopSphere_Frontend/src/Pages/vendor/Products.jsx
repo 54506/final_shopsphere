@@ -229,7 +229,7 @@ export default function ProductList() {
 
                 <div className="space-y-8 md:space-y-10 py-2 md:py-6">
                   <div>
-                    <h2 className={`text-3xl md:text-4xl font-black tracking-tighter italic uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{viewingProduct.name}</h2>
+                    <h2 className={`text-3xl md:text-4xl font-black tracking-tighter italic uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{viewingProduct.brand} {viewingProduct.name}</h2>
                     <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[4px] mt-2 italic">{viewingProduct.category}</p>
                   </div>
 
@@ -273,6 +273,16 @@ export default function ProductList() {
                     onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
                     className={`w-full p-4 md:p-5 border-2 border-transparent focus:border-indigo-500 rounded-2xl md:rounded-3xl outline-none font-black text-sm italic transition-all shadow-inner ${isDarkMode ? 'bg-white/5 text-white' : 'bg-slate-50 text-slate-800'}`}
                     placeholder="Item Name"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block ml-1">Brand</label>
+                  <input
+                    type="text"
+                    value={editingProduct.brand}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, brand: e.target.value })}
+                    className={`w-full p-4 md:p-5 border-2 border-transparent focus:border-indigo-500 rounded-2xl md:rounded-3xl outline-none font-black text-sm italic transition-all shadow-inner ${isDarkMode ? 'bg-white/5 text-white' : 'bg-slate-50 text-slate-800'}`}
+                    placeholder="Brand"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-6">

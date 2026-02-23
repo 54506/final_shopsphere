@@ -201,10 +201,13 @@ def google_login_api(request):
 def home_api(request):
     PAGE_SIZE = 50
 
-    # Base query
+    from django.db.models import Avg
+    # Base query with annotation to avoid N+1 queries for ratings
     products_qs = Product.objects.filter(
         status__in=['active', 'approved'],
         is_blocked=False
+    ).annotate(
+        avg_rating=Avg('reviews__rating')
     ).select_related('vendor').prefetch_related('images').order_by('-id')
 
     # Optional category filtering  (frontend may send display names like 'Home & Kitchen')
@@ -553,10 +556,23 @@ def process_payment(request):
     # Send confirmation email
     try:
         subject = f'Order Confirmed - {order.order_number}'
+        
+        # Dynamically determine the frontend URL
+        frontend_origin = request.headers.get('Origin') or request.headers.get('Referer', '').rstrip('/')
+        if not frontend_origin or 'localhost:8000' in frontend_origin:
+            frontend_origin = 'http://localhost:5173' # fallback
+            
+        from urllib.parse import urlparse
+        parsed = urlparse(frontend_origin)
+        frontend_origin = f"{parsed.scheme}://{parsed.netloc}"
+        
+        tracking_link = f"{frontend_origin}/track-order/{order.order_number}"
+        
         message = (
             f"Dear {request.user.username},\n\n"
             f"Your order {order.order_number} has been successfully placed and confirmed!\n"
             f"Total Amount: ₹{order.total_amount}\n\n"
+            f"You can track your order here: {tracking_link}\n\n"
             "Our team is already preparing your items for delivery. You can track your order status "
             "anytime in your profile section.\n\n"
             "Thank you for choosing ShopSphere!\n\n"
@@ -962,19 +978,18 @@ def reverse_geocode(request):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def get_trending_products(request):
-    """
-    Returns products that have a high average rating or are recently added.
-    """
-    from django.db.models import Avg
-    products = Product.objects.filter(
+    from django.db.models import Count, Avg
+    # Annotate with average rating and review count to improve performance
+    trending = Product.objects.filter(
         status__in=['active', 'approved'],
         is_blocked=False
     ).annotate(
-        average_rating=Avg('reviews__rating')
-    ).order_by('-average_rating', '-created_at')[:15]
+        review_count=Count('reviews'),
+        avg_rating=Avg('reviews__rating')
+    ).filter(review_count__gt=0).order_by('-review_count', '-avg_rating')[:10]
     
-    serializer = ProductSerializer(products, many=True, context={'request': request})
-    data = serializer.data
+    serializer = ProductSerializer(trending, many=True, context={'request': request})
+    return Response(serializer.data)
     # Ensure average_rating is never None
     for item in data:
         if item.get('average_rating') is None:

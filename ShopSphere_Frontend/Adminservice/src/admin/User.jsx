@@ -22,6 +22,7 @@ import Sidebar from '../components/Sidebar';
 import NotificationBell from '../components/NotificationBell';
 import { useUsers } from '../context/UserContext';
 import { useTheme } from '../context/ThemeContext';
+import { logout } from '../api/axios';
 import { toast } from 'react-hot-toast';
 
 const UserManagement = () => {
@@ -91,7 +92,7 @@ const UserManagement = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Users" onLogout={() => window.location.href = '/'} />
+            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Users" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Header */}
@@ -255,20 +256,26 @@ const UserManagement = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-6">
-                                                    <div className="opacity-0 group-hover:opacity-100 transition-all duration-200">
+                                                    <div className="flex items-center gap-2">
                                                         {user.status === 'ACTIVE' ? (
                                                             <button
                                                                 onClick={() => handleActionClick(user, 'BLOCK')}
-                                                                className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border bg-rose-50 text-rose-500 border-rose-100 hover:bg-rose-500 hover:text-white"
+                                                                className={`flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border shadow-sm ${isDarkMode
+                                                                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500 hover:text-white'
+                                                                    : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-600 hover:text-white'
+                                                                    }`}
                                                             >
-                                                                <Ban className="w-3.5 h-3.5" /> Block Account
+                                                                <Ban className="w-3.5 h-3.5" /> Block
                                                             </button>
                                                         ) : (
                                                             <button
                                                                 onClick={() => handleActionClick(user, 'UNBLOCK')}
-                                                                className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 hover:text-white transition-all border border-emerald-100"
+                                                                className={`flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border shadow-sm ${isDarkMode
+                                                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
+                                                                    : 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-600 hover:text-white'
+                                                                    }`}
                                                             >
-                                                                <UserCheck className="w-3.5 h-3.5" /> Restore Access
+                                                                <UserCheck className="w-3.5 h-3.5" /> Restore
                                                             </button>
                                                         )}
                                                     </div>

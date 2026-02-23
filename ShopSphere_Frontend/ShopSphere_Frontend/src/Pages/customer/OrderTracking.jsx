@@ -12,32 +12,32 @@ import {
     Calendar,
     Clock
 } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+
+import { fetchOrders } from "../../Store";
 
 const OrderTracking = () => {
     const { orderId } = useParams();
     const navigate = useNavigate();
-    const { orders } = useSelector((state) => state.order);
-
     const [order, setOrder] = useState(null);
+    const { orders, isLoading } = useSelector((state) => state.order);
+    const dispatch = useDispatch();
 
-    // Find order from state or use mock if not found for demo
     useEffect(() => {
-        const foundOrder = orders.find(o => String(o.id) === orderId || o.transaction_id === orderId);
+        if (orders.length === 0 && !isLoading) {
+            dispatch(fetchOrders());
+        }
+    }, [dispatch, orders.length, isLoading]);
+
+    // Find order from state
+    useEffect(() => {
+        const foundOrder = orders.find(o => String(o.id) === orderId || o.transaction_id === orderId || String(o.order_number) === orderId);
         if (foundOrder) {
             setOrder(foundOrder);
-        } else {
-            // Mock order data if not found (for demonstration/fresh success page)
-            setOrder({
-                id: orderId || "ORD-55421",
-                created_at: new Date().toISOString(),
-                total_amount: 12500.00,
-                customer_name: "John Doe",
-                order_status: "ocean_transit",
-                estimated_delivery: "29 Jul – 8 Aug"
-            });
         }
     }, [orderId, orders]);
+
+
 
     const steps = [
         { id: "pending", label: "Order Placed", icon: <CheckCircle size={20} /> },
@@ -54,7 +54,37 @@ const OrderTracking = () => {
         return index === -1 ? 0 : index;
     };
 
-    if (!order) return null;
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 border-4 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-orange-400 font-bold animate-pulse">Syncing tracking data...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!order) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 font-sans text-center">
+                <div className="max-w-md">
+                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Box className="text-gray-300" size={32} />
+                    </div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">Order Not Found</h2>
+                    <p className="text-gray-500 mb-8">We couldn't find an order with the ID <span className="text-orange-400 font-bold">#{orderId}</span>. Please verify the ID or check your order history.</p>
+                    <button
+                        onClick={() => navigate("/profile/orders")}
+                        className="px-8 py-4 bg-gray-900 text-white text-[11px] font-black uppercase tracking-widest rounded-2xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200"
+                    >
+                        Go to My Orders
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
 
     // Harmonize status field name (backend sends 'status', frontend was looking for 'order_status')
     const currentStatus = order.status || order.order_status || "pending";
@@ -253,7 +283,7 @@ const OrderTracking = () => {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
         @keyframes bounce-slow {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-3px); }

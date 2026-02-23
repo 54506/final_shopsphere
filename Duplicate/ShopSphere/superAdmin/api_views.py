@@ -4,7 +4,25 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import BasePermission
+
+class IsStaffOrSuperuser(BasePermission):
+    """
+    Allows access to users who are staff (is_staff=True) OR superusers (is_superuser=True).
+    DRF's built-in IsAdminUser only checks is_staff, which can leave out superusers
+    whose is_staff flag was not explicitly set.
+    """
+    message = "You must be an admin/staff user to access this endpoint."
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user and
+            request.user.is_authenticated and
+            (request.user.is_staff or request.user.is_superuser)
+        )
+
 from django.contrib.auth import get_user_model
+
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
@@ -38,14 +56,14 @@ class StandardResultsSetPagination(PageNumberPagination):
     max_page_size = 100
 
 class AdminLoginRequiredMixin:
-    """Ensure user is admin"""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    """Ensure user is admin (staff or superuser)"""
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
 
 class VendorRequestViewSet(AdminLoginRequiredMixin, viewsets.ModelViewSet):
     """Manage vendor approval requests"""
     queryset = VendorProfile.objects.filter(approval_status='pending')
     serializer_class = AdminVendorDetailSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
     
     def list(self, request, *args, **kwargs):
         queryset = VendorProfile.objects.filter(approval_status='pending')
@@ -150,7 +168,7 @@ class VendorRequestViewSet(AdminLoginRequiredMixin, viewsets.ModelViewSet):
 class VendorManagementViewSet(AdminLoginRequiredMixin, viewsets.ModelViewSet):
     queryset = VendorProfile.objects.all()
     serializer_class = AdminVendorListSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
     
     def list(self, request, *args, **kwargs):
         queryset = VendorProfile.objects.all()
@@ -270,7 +288,7 @@ class VendorManagementViewSet(AdminLoginRequiredMixin, viewsets.ModelViewSet):
 class ProductManagementViewSet(AdminLoginRequiredMixin, viewsets.ModelViewSet):
     queryset = Product.objects.select_related('vendor').prefetch_related('images').all()
     serializer_class = AdminProductListSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
     pagination_class = None  # We handle pagination manually below
 
     def list(self, request, *args, **kwargs):
@@ -378,7 +396,7 @@ class DeliveryRequestViewSet(AdminLoginRequiredMixin, viewsets.ModelViewSet):
     """Manage delivery agent approval requests"""
     queryset = DeliveryAgentProfile.objects.filter(approval_status='pending')
     serializer_class = AdminDeliveryAgentDetailSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
 
     def get_object(self):
         """
@@ -495,7 +513,7 @@ class DeliveryRequestViewSet(AdminLoginRequiredMixin, viewsets.ModelViewSet):
 class DeliveryAgentManagementViewSet(AdminLoginRequiredMixin, viewsets.ModelViewSet):
     queryset = DeliveryAgentProfile.objects.all()
     serializer_class = AdminDeliveryAgentListSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
     
     def list(self, request, *args, **kwargs):
         queryset = DeliveryAgentProfile.objects.all()
@@ -599,9 +617,12 @@ from django.utils import timezone
 
 
 class DashboardView(AdminLoginRequiredMixin, generics.GenericAPIView):
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
     
     def get(self, request):
+        from django.db.models import Sum
+        from user.models import Order
+        
         total_vendors = VendorProfile.objects.count()
         pending_vendors = VendorProfile.objects.filter(approval_status='pending').count()
         approved_vendors = VendorProfile.objects.filter(approval_status='approved').count()
@@ -622,6 +643,21 @@ class DashboardView(AdminLoginRequiredMixin, generics.GenericAPIView):
         delivered_orders = Order.objects.filter(status='delivered').count()
         cancelled_orders = Order.objects.filter(status='cancelled').count()
         
+        # User/Customer stats
+        User = get_user_model()
+        total_customers = User.objects.filter(role='customer').count()
+        active_customers = User.objects.filter(role='customer', is_blocked=False).count()
+        blocked_customers = User.objects.filter(role='customer', is_blocked=True).count()
+
+        # Deletion requests count
+        deletion_requests = VendorProfile.objects.filter(is_deletion_requested=True).count() + \
+                           DeliveryAgentProfile.objects.filter(is_deletion_requested=True).count()
+        
+        # Basic revenue for dashboard quick-view
+        revenue_summary = Order.objects.filter(payment_status='completed').aggregate(
+            total=Sum('total_amount'),
+        )
+        
         return Response({
             'vendors': {
                 'total': total_vendors,
@@ -641,112 +677,26 @@ class DashboardView(AdminLoginRequiredMixin, generics.GenericAPIView):
                 'approved': approved_agents,
                 'blocked': blocked_agents
             },
+            'customers': {
+                'total': total_customers,
+                'active': active_customers,
+                'blocked': blocked_customers
+            },
             'orders': {
                 'total': total_orders,
                 'pending': pending_orders,
                 'delivered': delivered_orders,
                 'cancelled': cancelled_orders
-            }
+            },
+            'deletion_requests': deletion_requests,
+            'total_revenue': float(revenue_summary['total'] or 0)
         })
 
 
 
-from decimal import Decimal
-from finance.models import CategoryCommission, GlobalCommission
-from finance.serializers import CategoryCommissionSerializer, GlobalCommissionSerializer
-
-
-class CommissionSettingsViewSet(AdminLoginRequiredMixin, viewsets.ModelViewSet):
-    """
-    Manage Category and Global Commission settings.
-    """
-    queryset = CategoryCommission.objects.all()
-    serializer_class = CategoryCommissionSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
-    pagination_class = None
-
-    @action(detail=False, methods=['get', 'post'], url_path='global')
-    def global_commission(self, request):
-        """Get or update the system-wide global commission."""
-        global_comm = GlobalCommission.objects.first()
-        if not global_comm:
-            global_comm = GlobalCommission.objects.create(percentage=Decimal('10.00'))
-
-        if request.method == 'POST':
-            serializer = GlobalCommissionSerializer(global_comm, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-    
-class DeletionRequestViewSet(AdminLoginRequiredMixin, viewsets.ViewSet):
-    """Manage account deletion requests from vendors and delivery agents"""
-    permission_classes = [IsAuthenticated, IsAdminUser]
-
-    @action(detail=False, methods=['get'])
-    def list_requests(self, request):
-        """List all pending deletion requests"""
-        vendor_requests = VendorProfile.objects.filter(is_deletion_requested=True)
-        agent_requests = DeliveryAgentProfile.objects.filter(is_deletion_requested=True)
-        
-        data = []
-        for v in vendor_requests:
-            data.append({
-                'type': 'vendor',
-                'id': v.id,
-                'name': v.shop_name,
-                'email': v.user.email,
-                'reason': v.deletion_reason,
-                'requested_at': v.deletion_requested_at
-            })
-        for a in agent_requests:
-            data.append({
-                'type': 'delivery_agent',
-                'id': a.id,
-                'name': a.user.get_full_name() or a.user.username,
-                'email': a.user.email,
-                'reason': a.deletion_reason,
-                'requested_at': a.deletion_requested_at
-            })
-            
-        return Response(data)
-
-    @action(detail=False, methods=['post'])
-    def process_request(self, request):
-        """Approve or deny a deletion request"""
-        target_type = request.data.get('type') # 'vendor' or 'delivery_agent'
-        target_id = request.data.get('id')
-        action = request.data.get('action') # 'approve' or 'deny'
-        
-        if target_type == 'vendor':
-            profile = get_object_or_404(VendorProfile, id=target_id)
-        elif target_type == 'delivery_agent':
-            profile = get_object_or_404(DeliveryAgentProfile, id=target_id)
-        else:
-            return Response({'error': 'Invalid target type'}, status=400)
-            
-        if action == 'approve':
-            # Logic for actual deletion or marking as inactive
-            user = profile.user
-            user.is_active = False # Deactivate user instead of deleting to keep history
-            user.save()
-            profile.is_deletion_requested = False
-            profile.save()
-            return Response({'message': 'Account deactivated successfully.'})
-            
-        elif action == 'deny':
-            profile.is_deletion_requested = False
-            profile.deletion_reason = None
-            profile.save()
-            # Send notification email?
-            return Response({'message': 'Deletion request denied.'})
-            
-        return Response({'error': 'Invalid action'}, status=400)
-
-        serializer = GlobalCommissionSerializer(global_comm)
-        return Response(serializer.data)
-
 
 # ═══════════════════ REPORTS API ═══════════════════
+
 
 from rest_framework.views import APIView
 
@@ -756,7 +706,7 @@ class ReportsView(APIView):
     Returns live platform analytics for the React admin dashboard.
     Requires superuser / staff privileges.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
 
     def get(self, request):
         from django.db.models import Count, Avg, Sum
@@ -853,6 +803,22 @@ class ReportsView(APIView):
         total_agents = DeliveryAgentProfile.objects.count()
         approved_agents = DeliveryAgentProfile.objects.filter(approval_status='approved').count()
 
+        # ── User Growth ───────────────────────────
+        User = get_user_model()
+        total_users = User.objects.filter(role='customer').count()
+        new_users_today = User.objects.filter(role='customer', date_joined__date=today).count()
+        new_users_week = User.objects.filter(role='customer', date_joined__date__gte=seven_days_ago).count()
+        
+        user_growth = list(
+            User.objects.filter(role='customer', date_joined__date__gte=thirty_days_ago)
+            .annotate(day=TruncDate('date_joined'))
+            .values('day')
+            .annotate(count=Count('id'))
+            .order_by('day')
+        )
+        for u in user_growth:
+            u['day'] = u['day'].strftime('%d %b')
+
         return Response({
             # Orders
             'total_orders': order_qs.count(),
@@ -894,6 +860,12 @@ class ReportsView(APIView):
             'total_deliveries_failed': total_deliveries_failed,
             'total_agents': total_agents,
             'approved_agents': approved_agents,
+            
+            # User Growth (New)
+            'total_customers': total_users,
+            'new_users_today': new_users_today,
+            'new_users_week': new_users_week,
+            'user_growth': user_growth,
 
             # Meta
             'report_date': str(today),
@@ -908,7 +880,7 @@ class UserManagementView(APIView):
       - Return rate        → up to 30 pts
       - Failed payments    → up to 30 pts
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
 
     def get(self, request):
         from django.db.models import Count, Q
@@ -1011,7 +983,7 @@ class UserBlockToggleView(APIView):
     POST /superAdmin/api/users/{id}/toggle-block/
     Body: { "action": "BLOCK"|"UNBLOCK", "reason": "optional" }
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
 
     def post(self, request, pk):
         User = get_user_model()
@@ -1055,7 +1027,7 @@ class TriggerAssignmentView(APIView):
     POST /superAdmin/api/trigger-assignment/{order_id}/
     Manually trigger auto-assignment for a specific order.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
 
     def post(self, request, order_id):
         from user.models import Order
@@ -1105,7 +1077,7 @@ class UnassignedOrdersView(APIView):
     Lists all paid orders that have no DeliveryAssignment yet,
     so admin can manually trigger assignment.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
 
     def get(self, request):
         from deliveryAgent.services import get_unassigned_confirmed_orders
@@ -1132,7 +1104,7 @@ class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Admin-only viewset to manage all orders.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
     queryset = Order.objects.all().select_related('user', 'delivery_address')
     pagination_class = StandardResultsSetPagination
 
@@ -1160,7 +1132,7 @@ class AdminOrderTrackingViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Admin-only viewset to monitor all delivery assignments and their tracking history.
     """
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
     
     queryset = DeliveryAssignment.objects.all().select_related('agent', 'agent__user', 'order', 'order__user')
     serializer_class = DeliveryAssignmentDetailSerializer
@@ -1175,7 +1147,7 @@ class AdminOrderTrackingViewSet(viewsets.ReadOnlyModelViewSet):
 
 class DeletionRequestViewSet(AdminLoginRequiredMixin, viewsets.ViewSet):
     """Manage account deletion requests from vendors and delivery agents"""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
 
     @action(detail=False, methods=['get'])
     def list_requests(self, request):
@@ -1244,7 +1216,7 @@ class DeletionRequestViewSet(AdminLoginRequiredMixin, viewsets.ViewSet):
 
 class CommissionSettingsViewSet(AdminLoginRequiredMixin, viewsets.ViewSet):
     """Manage global and category commission settings"""
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsStaffOrSuperuser]
 
     def list(self, request):
         """GET /superAdmin/api/commission-settings/ - List all category commissions"""
@@ -1326,3 +1298,89 @@ class CommissionSettingsViewSet(AdminLoginRequiredMixin, viewsets.ViewSet):
                 'fixed_amount': float(obj.fixed_amount),
                 'updated_at': obj.updated_at,
             })
+
+
+# ═══════════════════ DEDICATED ADMIN LOGIN ═══════════════════
+
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+
+class AdminLoginView(APIView):
+    """
+    POST /superAdmin/api/admin-login/
+    Dedicated login for admin panel — only allows is_staff or is_superuser accounts.
+    Accepts: { "username": "...", "password": "..." }   (username OR email)
+    Returns: { "access": "...", "refresh": "...", "username": "...", "email": "..." }
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        username_or_email = request.data.get('username') or request.data.get('email', '')
+        password = request.data.get('password', '')
+
+        if not username_or_email or not password:
+            return Response({'error': 'Username/email and password are required.'}, status=400)
+
+        User = get_user_model()
+
+        # Resolve username → email (our AUTH backend uses email as USERNAME_FIELD)
+        auth_email = username_or_email
+        if '@' not in username_or_email:
+            try:
+                user_obj = User.objects.get(username=username_or_email)
+                auth_email = user_obj.email
+            except User.DoesNotExist:
+                return Response({'error': 'Invalid credentials.'}, status=401)
+
+        user = authenticate(username=auth_email, password=password)
+
+        if user is None:
+            return Response({'error': 'Invalid credentials.'}, status=401)
+
+        if not user.is_active:
+            return Response({'error': 'This account is inactive.'}, status=403)
+
+        if not (user.is_staff or user.is_superuser):
+            return Response({
+                'error': 'Access denied. This login is for admin/staff accounts only.'
+            }, status=403)
+
+        refresh = RefreshToken.for_user(user)
+        refresh['is_staff'] = user.is_staff
+        refresh['is_superuser'] = user.is_superuser
+        refresh['role'] = 'ADMIN' # Explicitly set role for frontend compatibility
+        refresh['username'] = user.username
+
+        return Response({
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+            'username': user.username,
+            'email': user.email,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+        })
+
+
+# ═══════════════════ DEBUG / WHOAMI ═══════════════════
+
+class WhoAmIView(APIView):
+    """
+    GET /superAdmin/api/whoami/
+    Returns information about the currently authenticated user.
+    Used for debugging 403 issues.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        u = request.user
+        return Response({
+            'id': u.id,
+            'username': u.username,
+            'email': u.email,
+            'is_staff': u.is_staff,
+            'is_superuser': u.is_superuser,
+            'is_active': u.is_active,
+            'role': getattr(u, 'role', 'N/A'),
+            'is_admin_eligible': u.is_staff or u.is_superuser,
+        })

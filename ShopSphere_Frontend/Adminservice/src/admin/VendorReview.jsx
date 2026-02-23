@@ -25,7 +25,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import NotificationBell from '../components/NotificationBell';
-import { fetchVendorDetail, approveVendorRequest, rejectVendorRequest, blockVendor, unblockVendor } from '../api/axios';
+import { fetchVendorDetail, approveVendorRequest, rejectVendorRequest, blockVendor, unblockVendor, logout } from '../api/axios';
 import { useNotifications } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { toast } from 'react-hot-toast';
@@ -161,7 +161,7 @@ const VendorReview = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Vendors" onLogout={() => window.location.href = '/'} />
+            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Vendors" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0">
                 <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
@@ -197,8 +197,12 @@ const VendorReview = () => {
                             className={`rounded-[3rem] p-8 md:p-12 border shadow-sm relative overflow-hidden transition-all duration-500 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800 shadow-indigo-500/5' : 'bg-white border-slate-100 shadow-xl shadow-slate-200/50'}`}
                         >
                             <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
-                                <div className={`w-32 h-32 rounded-[2.5rem] flex items-center justify-center text-5xl font-black shadow-2xl transition-all duration-500 hover:scale-110 ${isDarkMode ? 'bg-indigo-600 text-white shadow-indigo-900/40' : 'bg-gradient-to-br from-indigo-500 to-indigo-700 text-white shadow-indigo-200'}`}>
-                                    {(vendor.shop_name || "V").charAt(0)}
+                                <div className={`w-32 h-32 rounded-[2.5rem] flex items-center justify-center text-5xl font-black shadow-2xl transition-all duration-500 overflow-hidden hover:scale-110 ${isDarkMode ? 'bg-indigo-600 text-white shadow-indigo-900/40' : 'bg-gradient-to-br from-indigo-500 to-indigo-700 text-white shadow-indigo-200'}`}>
+                                    {vendor.user_profile_image ? (
+                                        <img src={getMediaUrl(vendor.user_profile_image)} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        (vendor.shop_name || "V").charAt(0)
+                                    )}
                                 </div>
                                 <div className="flex-1 text-center md:text-left space-y-4">
                                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
@@ -379,6 +383,24 @@ const VendorReview = () => {
                                                     </div>
                                                 </div>
                                                 <ExternalLink className={`w-4 h-4 opacity-0 group-hover:opacity-100 transition-all ${isDarkMode ? 'text-amber-400' : 'text-amber-500'}`} />
+                                            </div>
+                                        )}
+
+                                        {vendor.selfie_with_id && (
+                                            <div
+                                                className={`group p-6 rounded-3xl border flex items-center justify-between transition-all cursor-pointer md:col-span-2 ${isDarkMode ? 'bg-slate-900/50 border-slate-800 hover:bg-slate-900 hover:border-indigo-500/50' : 'bg-indigo-50/30 border-indigo-100 hover:bg-white hover:shadow-xl hover:border-indigo-200'}`}
+                                                onClick={() => window.open(getMediaUrl(vendor.selfie_with_id), '_blank')}
+                                            >
+                                                <div className="flex items-center gap-5">
+                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all group-hover:scale-110 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-indigo-400' : 'bg-white border-indigo-200 text-indigo-600 shadow-sm'}`}>
+                                                        <Camera className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <p className={`text-xs font-black italic tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Selfie Verification</p>
+                                                        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[2px]">Face Match with ID Asset</p>
+                                                    </div>
+                                                </div>
+                                                <ExternalLink className={`w-4 h-4 opacity-0 group-hover:opacity-100 transition-all ${isDarkMode ? 'text-indigo-400' : 'text-indigo-500'}`} />
                                             </div>
                                         )}
                                     </div>

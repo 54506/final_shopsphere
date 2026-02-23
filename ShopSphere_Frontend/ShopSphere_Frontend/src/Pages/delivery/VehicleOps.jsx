@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTheme } from "../../context/ThemeContext";
+import { validateVehicleNumber } from "../../utils/validators";
 
 export default function DeliveryVehicleOps() {
     const navigate = useNavigate();
@@ -27,12 +28,28 @@ export default function DeliveryVehicleOps() {
         preferredRadius: 10
     });
 
+    const [errors, setErrors] = useState({});
+
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        setErrors(prev => ({ ...prev, [e.target.name]: null }));
     };
 
     const handleNext = (e) => {
         e.preventDefault();
+        const errs = {};
+        const vehicleErr = validateVehicleNumber(formData.vehicleNumber);
+        if (vehicleErr) errs.vehicleNumber = vehicleErr;
+        if (!formData.address || formData.address.trim().length < 5) errs.address = "Please enter a valid address.";
+        if (!formData.city || formData.city.trim().length < 2) errs.city = "City is required.";
+        if (!formData.state || formData.state.trim().length < 2) errs.state = "State is required.";
+        if (!formData.postalCode || !/^\d{6}$/.test(formData.postalCode)) errs.postalCode = "Pincode must be 6 digits.";
+
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            toast.error(Object.values(errs)[0]);
+            return;
+        }
         localStorage.setItem("delivery_reg_ops", JSON.stringify(formData));
         navigate("/delivery/bank-docs");
     };
@@ -96,10 +113,12 @@ export default function DeliveryVehicleOps() {
                                         required
                                         value={formData.vehicleNumber}
                                         onChange={handleChange}
-                                        placeholder="XX 00 YY 0000"
-                                        className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40 placeholder:text-slate-600' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white placeholder:text-slate-300'}`}
+                                        placeholder="e.g. MH12AB1234"
+                                        maxLength={12}
+                                        className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${errors.vehicleNumber ? 'border-red-500' : (isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40 placeholder:text-slate-600' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white placeholder:text-slate-300')}`}
                                     />
                                 </div>
+                                {errors.vehicleNumber && <p className="text-red-500 text-[9px] font-black uppercase tracking-wider ml-1">⚠ {errors.vehicleNumber}</p>}
                             </div>
                         </div>
 

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTheme } from "../../context/ThemeContext";
+import { validateEmail } from "../../utils/validators";
 
 export default function DeliveryAccountVerification() {
     const navigate = useNavigate();
@@ -20,8 +21,9 @@ export default function DeliveryAccountVerification() {
 
     const sendOtp = async (e) => {
         e.preventDefault();
-        if (!email.trim()) {
-            toast.error("Please enter your email address");
+        const emailErr = validateEmail(email.trim());
+        if (emailErr) {
+            toast.error(emailErr);
             return;
         }
 

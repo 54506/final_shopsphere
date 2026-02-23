@@ -4,9 +4,13 @@ const base_url = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 // ── Token helper ─────────────────────────────────────────────────────────────
 const getAdminToken = () => {
-    const token = localStorage.getItem("accessToken") || localStorage.getItem("authToken");
+    const token = localStorage.getItem("accessToken") ||
+        localStorage.getItem("authToken") ||
+        sessionStorage.getItem("accessToken") ||
+        sessionStorage.getItem("authToken");
+
     if (!token) {
-        console.warn("[Admin Auth] No token found in localStorage.");
+        console.warn("[Admin Auth] No token found in storage.");
         return "";
     }
     return token;
@@ -22,7 +26,7 @@ axiosInstance.interceptors.request.use((config) => {
     const token = getAdminToken();
     if (token) {
         config.headers["Authorization"] = `Bearer ${token}`;
-        console.log(`[Admin API] Sent Request: ${config.method.toUpperCase()} ${config.url}`);
+        // console.log(`[Admin API] Sent Request: ${config.method.toUpperCase()} ${config.url}`);
     } else {
         console.warn(`[Admin API] No Token for Request: ${config.method.toUpperCase()} ${config.url}`);
     }
@@ -30,22 +34,15 @@ axiosInstance.interceptors.request.use((config) => {
 }, (error) => Promise.reject(error));
 
 axiosInstance.interceptors.response.use(
-    (response) => {
-        console.log(`[Admin API] Response Success: ${response.config.url}`);
-        return response;
-    },
+    (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            console.error("[Admin API] 401 Error — Token rejected by server.");
-            // If the user is on a page that requires login, force a logout to clear the bad state
-            const currentPath = window.location.pathname;
-            if (currentPath !== "/" && currentPath !== "/login") {
-                console.warn("[Admin API] Forcing logout due to 401 to clear session...");
-                localStorage.removeItem("accessToken");
-                localStorage.removeItem("authToken");
-                localStorage.removeItem("adminAuthenticated");
-                window.location.href = "/"; // Force redirect to login page
-            }
+        const status = error.response?.status;
+        const currentPath = window.location.pathname;
+
+        // If 401 (Unauthenticated) or 403 (Unauthorized/Forbidden for Admin)
+        if ((status === 401 || status === 403) && currentPath !== "/login") {
+            console.error(`[Admin API] ${status} Error — ${status === 401 ? 'Auth required' : 'Access denied'}. Forcing logout...`);
+            logout();
         }
         return Promise.reject(error);
     }
@@ -57,17 +54,20 @@ export { axiosInstance };
 
 export const adminLogin = async (username, password) => {
     try {
+        // Uses dedicated admin-only endpoint that enforces is_staff / is_superuser
         const response = await axios.post(
-            `${base_url}/user_login`,
+            `${base_url}/superAdmin/api/admin-login/`,
             { username, password },
-            { headers: { 'Accept': 'application/json' } }
+            { headers: { 'Content-Type': 'application/json' } }
         );
         if (response.data?.access) {
-            console.log("[Admin Login] Saving fresh tokens...");
-            localStorage.setItem("accessToken", response.data.access);
-            localStorage.setItem("authToken", response.data.access);
-            localStorage.setItem("refreshToken", response.data.refresh);
+            console.log("[Admin Login] Saving fresh admin tokens...");
+            const token = response.data.access;
+            localStorage.setItem("accessToken", token);
+            localStorage.setItem("authToken", token);
+            localStorage.setItem("refreshToken", response.data.refresh || '');
             localStorage.setItem("adminAuthenticated", "true");
+            localStorage.setItem("adminUsername", response.data.username || username);
         }
         return response.data;
     } catch (err) {
@@ -77,11 +77,20 @@ export const adminLogin = async (username, password) => {
 };
 
 export const logout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("adminAuthenticated");
-    window.location.href = "/";
+    console.log("[Admin Auth] Logging out and clearing all storage...");
+    const keys = ["accessToken", "authToken", "refreshToken", "adminAuthenticated", "adminUsername"];
+    keys.forEach(k => {
+        localStorage.removeItem(k);
+        sessionStorage.removeItem(k);
+    });
+    // Redirect to login explicitly
+    window.location.href = "/login";
+};
+
+// Debug helper — call from browser console: import { whoAmI } from './api/axios'; whoAmI().then(console.log)
+export const whoAmI = async () => {
+    const response = await axiosInstance.get('/superAdmin/api/whoami/');
+    return response.data;
 };
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import SearchBar from '../components/SearchBar';
 import { useVendors } from '../context/VendorContext';
 import { useTheme } from '../context/ThemeContext';
+import { logout } from '../api/axios';
 import {
     PanelLeftClose,
     PanelLeftOpen,
@@ -51,7 +52,7 @@ const VendorList = () => {
                 isSidebarOpen={isSidebarOpen}
                 setIsSidebarOpen={setIsSidebarOpen}
                 activePage="Vendors"
-                onLogout={() => navigate('/')}
+                onLogout={logout}
             />
 
             <main className="flex-1 flex flex-col min-w-0">

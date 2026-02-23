@@ -10,7 +10,8 @@ import {
     ArrowRight,
     ClipboardList,
     Sun,
-    Moon
+    Moon,
+    LogOut
 } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 
@@ -120,7 +121,7 @@ const Sidebar = ({ isSidebarOpen, activePage = 'Dashboard', onLogout }) => {
                             className={`p-2 rounded-lg transition-all ${isDarkMode ? 'hover:bg-slate-700 text-slate-500 hover:text-rose-400' : 'hover:bg-white text-slate-400 hover:text-rose-600 shadow-sm hover:shadow-md'}`}
                             title="Logout"
                         >
-                            <ArrowRight className="w-4 h-4" />
+                            <LogOut className="w-4 h-4" />
                         </button>
                     </div>
                 </div>

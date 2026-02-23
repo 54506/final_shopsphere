@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { useProducts } from '../context/ProductContext';
-import { fetchAllVendors, blockVendor, unblockVendor, approveVendorRequest, fetchProductsByVendor } from '../api/axios';
+import { fetchAllVendors, blockVendor, unblockVendor, approveVendorRequest, fetchProductsByVendor, logout } from '../api/axios';
 import { useTheme } from '../context/ThemeContext';
 import {
     PanelLeftClose,
@@ -116,7 +116,7 @@ const VendorDetails = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${dm ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Vendors" onLogout={handleLogout} />
+            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Vendors" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 overflow-hidden">
                 {/* Header */}
@@ -237,6 +237,24 @@ const VendorDetails = () => {
 
                                 <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 py-8 border-t mb-8 ${dm ? 'border-slate-700/50 text-slate-200' : 'border-slate-100 text-slate-900'}`}>
                                     <div className={`flex items-center gap-5 p-4 rounded-2xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
+                                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-indigo-500 overflow-hidden ${dm ? 'bg-slate-700' : 'bg-white shadow-sm'}`}>
+                                            {vendor.user_profile_image ? (
+                                                <img src={vendor.user_profile_image} className="w-full h-full object-cover" alt="Profile" />
+                                            ) : (
+                                                <User className="w-7 h-7" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className={`text-sm font-black uppercase tracking-tight ${dm ? 'text-white' : 'text-slate-900'}`}>{vendor.user_username || 'User Profile'}</p>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{vendor.user_email || 'Identity'}</p>
+                                        </div>
+                                        {vendor.user_profile_image && (
+                                            <button onClick={() => window.open(vendor.user_profile_image.startsWith('http') ? vendor.user_profile_image : `http://localhost:8000${vendor.user_profile_image}`, '_blank')} className={`ml-auto px-4 py-2 rounded-lg text-xs font-black text-indigo-500 uppercase tracking-widest transition-colors border ${dm ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-slate-200 hover:bg-indigo-50'}`}>
+                                                View
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className={`flex items-center gap-5 p-4 rounded-2xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
                                         <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-indigo-500 ${dm ? 'bg-slate-700' : 'bg-white shadow-sm'}`}>
                                             <FileText className="w-7 h-7" />
                                         </div>
@@ -245,7 +263,7 @@ const VendorDetails = () => {
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{vendor.id_number || 'Verification Doc'}</p>
                                         </div>
                                         {vendor.id_proof_file && (
-                                            <button onClick={() => window.open(`http://localhost:8000${vendor.id_proof_file}`, '_blank')} className={`ml-auto px-4 py-2 rounded-lg text-xs font-black text-indigo-500 uppercase tracking-widest transition-colors border ${dm ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-slate-200 hover:bg-indigo-50'}`}>
+                                            <button onClick={() => window.open(vendor.id_proof_file.startsWith('http') ? vendor.id_proof_file : `http://localhost:8000${vendor.id_proof_file}`, '_blank')} className={`ml-auto px-4 py-2 rounded-lg text-xs font-black text-indigo-500 uppercase tracking-widest transition-colors border ${dm ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-slate-200 hover:bg-indigo-50'}`}>
                                                 Review
                                             </button>
                                         )}
@@ -259,7 +277,35 @@ const VendorDetails = () => {
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{vendor.pan_number || 'Taxation ID'}</p>
                                         </div>
                                         {vendor.pan_card_file && (
-                                            <button onClick={() => window.open(`http://localhost:8000${vendor.pan_card_file}`, '_blank')} className={`ml-auto px-4 py-2 rounded-lg text-xs font-black text-rose-500 uppercase tracking-widest transition-colors border ${dm ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-slate-200 hover:bg-rose-50'}`}>
+                                            <button onClick={() => window.open(vendor.pan_card_file.startsWith('http') ? vendor.pan_card_file : `http://localhost:8000${vendor.pan_card_file}`, '_blank')} className={`ml-auto px-4 py-2 rounded-lg text-xs font-black text-rose-500 uppercase tracking-widest transition-colors border ${dm ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-slate-200 hover:bg-rose-50'}`}>
+                                                Review
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className={`flex items-center gap-5 p-4 rounded-2xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
+                                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-amber-500 ${dm ? 'bg-slate-700' : 'bg-white shadow-sm'}`}>
+                                            <FileText className="w-7 h-7" />
+                                        </div>
+                                        <div>
+                                            <p className={`text-sm font-black uppercase tracking-tight ${dm ? 'text-white' : 'text-slate-900'}`}>Additional Docs</p>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Trade License / Other</p>
+                                        </div>
+                                        {vendor.additional_documents && (
+                                            <button onClick={() => window.open(vendor.additional_documents.startsWith('http') ? vendor.additional_documents : `http://localhost:8000${vendor.additional_documents}`, '_blank')} className={`ml-auto px-4 py-2 rounded-lg text-xs font-black text-amber-500 uppercase tracking-widest transition-colors border ${dm ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-slate-200 hover:bg-amber-50'}`}>
+                                                Review
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className={`flex items-center gap-5 p-4 rounded-2xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
+                                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-emerald-500 ${dm ? 'bg-slate-700' : 'bg-white shadow-sm'}`}>
+                                            <Activity className="w-7 h-7" />
+                                        </div>
+                                        <div>
+                                            <p className={`text-sm font-black uppercase tracking-tight ${dm ? 'text-white' : 'text-slate-900'}`}>Selfie with ID</p>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Identity Verification</p>
+                                        </div>
+                                        {vendor.selfie_with_id && (
+                                            <button onClick={() => window.open(vendor.selfie_with_id.startsWith('http') ? vendor.selfie_with_id : `http://localhost:8000${vendor.selfie_with_id}`, '_blank')} className={`ml-auto px-4 py-2 rounded-lg text-xs font-black text-emerald-500 uppercase tracking-widest transition-colors border ${dm ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-slate-200 hover:bg-emerald-50'}`}>
                                                 Review
                                             </button>
                                         )}

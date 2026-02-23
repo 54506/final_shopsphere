@@ -15,7 +15,7 @@ import DeliveryOrderDetail from "../Pages/delivery/DeliveryOrderDetail";
 import EarningsPage from "../Pages/delivery/earnings";
 import DeliveryHistory from "../Pages/delivery/History";
 import LandingPage from "../Components/common/LandingPage";
-import AccountVerification from "../Pages/customer/Accountverification";
+import AccountVerification from "../Pages/customer/AccountVerification";
 import VerifyOTP from "../Pages/customer/VerifyOTP";
 import StoreName from "../Pages/customer/StoreName";
 import ShippingAddress from "../Pages/customer/ShippingAddress";
@@ -45,6 +45,8 @@ import DeliveryVerifyOTP from "../Pages/delivery/VerifyOTP";
 import DeliveryIdentityDetails from "../Pages/delivery/IdentityDetails";
 import DeliveryVehicleOps from "../Pages/delivery/VehicleOps";
 import DeliveryBankDocs from "../Pages/delivery/BankDocs";
+import CategoryProducts from "../Pages/customer/CategoryProducts";
+import BrandProducts from "../Pages/customer/BrandProducts";
 
 
 function AppRoutes() {
@@ -63,6 +65,8 @@ function AppRoutes() {
 
             {/* Customer Routes */}
             <Route path="/home" element={<Home />} />
+            <Route path="/category/:category" element={<CategoryProducts />} />
+            <Route path="/brand/:brand" element={<BrandProducts />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/wishlist" element={<Wishlist />} />

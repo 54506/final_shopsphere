@@ -22,6 +22,7 @@ export default function AddProduct() {
 
   const [product, setProduct] = useState({
     name: "",
+    brand: "",
     description: "",
     price: "",
     stock: "",
@@ -130,6 +131,14 @@ export default function AddProduct() {
               value={product.name}
               onChange={handleChange}
               placeholder="Product Name"
+              className={`w-full p-4 md:p-5 border-2 border-transparent focus:border-indigo-600 rounded-2xl md:rounded-3xl outline-none font-black text-sm italic transition-all shadow-inner ${isDarkMode ? 'bg-[#020617] text-white' : 'bg-slate-50 text-slate-800'}`}
+            />
+            <input
+              type="text"
+              name="brand"
+              value={product.brand}
+              onChange={handleChange}
+              placeholder="Product Brand"
               className={`w-full p-4 md:p-5 border-2 border-transparent focus:border-indigo-600 rounded-2xl md:rounded-3xl outline-none font-black text-sm italic transition-all shadow-inner ${isDarkMode ? 'bg-[#020617] text-white' : 'bg-slate-50 text-slate-800'}`}
             />
             <textarea
@@ -273,9 +282,9 @@ export default function AddProduct() {
       </form>
 
       <style>{`
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
+`}</style>
     </div>
   );
 }

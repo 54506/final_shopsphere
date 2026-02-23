@@ -108,7 +108,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'vendor', 'vendor_name', 'name', 'description', 'category', 
+            'id', 'vendor', 'vendor_name', 'name', 'brand', 'description', 'category', 
             'category_display', 'price', 'quantity', 'images', 'image', 'image_urls', 'status', 
             'status_display', 'is_blocked', 'blocked_reason', 'created_at', 'updated_at'
         ]
@@ -142,7 +142,7 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating products"""
     class Meta:
         model = Product
-        fields = ['name', 'description', 'category', 'price', 'quantity', 'status']
+        fields = ['name', 'brand', 'description', 'category', 'price', 'quantity', 'status']
 
 
 class ProductListSerializer(serializers.ModelSerializer):
@@ -154,7 +154,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'category', 'vendor_name', 'price', 'quantity',
+            'id', 'name', 'brand', 'description', 'category', 'vendor_name', 'price', 'quantity',
             'status', 'is_blocked', 'images', 'created_at'
         ]
 
@@ -180,9 +180,15 @@ class VendorOrderItemSerializer(serializers.ModelSerializer):
     customer_billing_address = OrderAddressSerializer(source='order.billing_address', read_only=True)
 
     def get_customer_address(self, obj):
-        # Only show the address that was actually selected for this order.
-        # Do NOT fall back to other user addresses — that's a different user's data.
+        # Prefer the explicit delivery address linked to the order
         address = obj.order.delivery_address
+        
+        # Fallback for missing delivery address (same as invoice logic)
+        if not address:
+            from user.models import Address
+            address = Address.objects.filter(user=obj.order.user, is_default=True).first() or \
+                      Address.objects.filter(user=obj.order.user).first()
+            
         if address:
             return OrderAddressSerializer(address).data
         return None

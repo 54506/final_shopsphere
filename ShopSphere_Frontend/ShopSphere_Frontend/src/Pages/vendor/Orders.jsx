@@ -228,11 +228,28 @@ export default function Orders() {
 
                     <section>
                       <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[4px] mb-4 flex items-center gap-2">
-                        <FaMapMarkerAlt className="text-emerald-500" /> Shipping Info
+                        <FaMapMarkerAlt className="text-rose-500" /> Shipping Address
                       </h4>
-                      <div className={`p-5 border rounded-3xl space-y-2 ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100 shadow-inner'}`}>
-                        <p className={`text-sm font-black italic truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{selectedOrder.customer_name}</p>
-                        <p className="text-xs text-gray-400 font-medium leading-relaxed">{selectedOrder.address}</p>
+                      <div className={`p-5 border rounded-3xl ${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100 shadow-inner'}`}>
+                        {selectedOrder.customer_address ? (
+                          <div className="space-y-2">
+                            <p className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                              {selectedOrder.customer_address.name}
+                            </p>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
+                              {selectedOrder.customer_address.address_line1}, {selectedOrder.customer_address.address_line2 && `${selectedOrder.customer_address.address_line2}, `}
+                              {selectedOrder.customer_address.city}, {selectedOrder.customer_address.state} - {selectedOrder.customer_address.pincode}
+                            </p>
+                            <div className="pt-2 flex flex-col gap-1">
+                              <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest italic">{selectedOrder.customer_address.phone}</p>
+                              <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest italic">{selectedOrder.customer_address.email}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-rose-400 font-black uppercase tracking-widest italic animate-pulse">
+                            Address information cluster missing
+                          </p>
+                        )}
                       </div>
                     </section>
                   </div>

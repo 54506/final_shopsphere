@@ -7,7 +7,7 @@ from django.conf import settings
 class AuthUser(AbstractUser):
     """Extended user model with role-based access"""
     email = models.EmailField(unique=True)
-    username = models.CharField(max_length=150, unique=False)
+    username = models.CharField(max_length=150, unique=False, db_index=True)
     phone = models.CharField(max_length=15, blank=True, null=True)
     profile_image = models.ImageField(upload_to='profiles/', blank=True, null=True)
 

@@ -55,10 +55,7 @@ export default function VendorLayout() {
               {isDarkMode ? <SunIcon className="h-5 w-5 md:h-6 md:w-6" /> : <MoonIcon className="h-5 w-5 md:h-6 md:w-6" />}
             </button>
 
-            <button className={`p-2 transition-colors rounded-xl relative border ${isDarkMode ? 'text-gray-400 hover:text-white bg-white/5 border-white/5' : 'text-slate-500 hover:text-indigo-600 bg-slate-50 border-slate-200'}`}>
-              <BellIcon className="h-5 w-5 md:h-6 md:w-6" />
-              <span className="absolute top-1.5 right-2 w-1.5 h-1.5 md:w-2 md:h-2 bg-indigo-500 rounded-full border-2 border-[#020617]"></span>
-            </button>
+
 
             <Link
               to="/vendorprofile"

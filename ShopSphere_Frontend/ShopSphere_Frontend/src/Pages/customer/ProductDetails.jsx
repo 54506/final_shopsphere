@@ -272,7 +272,7 @@ const ProductDetails = () => {
                     {/* RIGHT SECTION: INFO */}
                     <div className="w-full lg:w-[45%] p-8 lg:p-14 lg:border-l border-gray-100 flex flex-col justify-between">
                         <div>
-                            <p className="text-orange-400 text-[12px] font-black uppercase tracking-[3px] mb-3">Premium Collection</p>
+                            <p className="text-orange-400 text-[14px] font-black uppercase tracking-[4px] mb-2">{product.brand}</p>
                             <h1 className="text-4xl lg:text-5xl font-black text-gray-900 leading-[1.1] mb-6 tracking-tight">
                                 {product.name}
                             </h1>
@@ -294,6 +294,7 @@ const ProductDetails = () => {
                             <div className="mb-10">
                                 <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[2px] mb-4">Product Description</h4>
                                 <p className="text-gray-500 text-lg leading-relaxed font-medium lg:max-w-sm">
+                                    <span className="font-bold text-gray-900 block mb-2">Brand: {product.brand}</span>
                                     {product.description}
                                 </p>
                             </div>

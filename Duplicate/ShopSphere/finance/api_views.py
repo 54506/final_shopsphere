@@ -24,13 +24,8 @@ class VendorCommissionViewSet(viewsets.ReadOnlyModelViewSet):
         
         global_comm = GlobalCommission.objects.first()
         
-        # Filter categories based on vendor's products
-        try:
-            vendor = VendorProfile.objects.get(user=request.user)
-            vendor_categories = Product.objects.filter(vendor=vendor).values_list('category', flat=True).distinct()
-            categories = CategoryCommission.objects.filter(category__in=vendor_categories)
-        except VendorProfile.DoesNotExist:
-            categories = CategoryCommission.objects.none()
+        # Return all category commissions so vendors can see full fee structure
+        categories = CategoryCommission.objects.all()
         
         return Response({
             'global_rate': GlobalCommissionSerializer(global_comm).data if global_comm else None,

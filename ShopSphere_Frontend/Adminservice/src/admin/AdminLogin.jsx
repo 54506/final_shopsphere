@@ -26,6 +26,7 @@ const AdminLogin = () => {
                 localStorage.setItem("refreshToken", data.refresh);
             }
             localStorage.setItem("adminAuthenticated", "true");
+            localStorage.setItem("adminUsername", username);
             navigate("/dashboard");
         } catch (err) {
             console.error("Login Error:", err);

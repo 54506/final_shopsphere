@@ -24,9 +24,20 @@ const SplashScreen = () => {
                     const padding = '='.repeat((4 - (base64.length % 4)) % 4);
                     const payload = JSON.parse(atob(base64 + padding));
 
-                    if (payload.role === 'ADMIN' || payload.role === 'SUPER_ADMIN') {
+                    // Improved check: handles ADMIN, admin, or is_staff/is_superuser flags
+                    const userRole = (payload.role || '').toUpperCase();
+                    const isAllowed = userRole === 'ADMIN' ||
+                        userRole === 'SUPER_ADMIN' ||
+                        payload.is_staff === true ||
+                        payload.is_superuser === true;
+
+                    if (isAllowed) {
                         navigate('/dashboard');
                     } else {
+                        console.warn("[Splash] User is authenticated but NOT an admin. Redirecting to login.");
+                        // Clear them out to be safe
+                        const keys = ["accessToken", "authToken", "refreshToken", "adminAuthenticated", "adminUsername"];
+                        keys.forEach(k => { localStorage.removeItem(k); sessionStorage.removeItem(k); });
                         navigate('/login');
                     }
                 } catch (e) {

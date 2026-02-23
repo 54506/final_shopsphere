@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { useTheme } from "../../context/ThemeContext";
+import { validateName, validatePhone, validatePassword, validateDOB } from "../../utils/validators";
 
 export default function DeliveryIdentityDetails() {
     const navigate = useNavigate();
@@ -24,15 +25,29 @@ export default function DeliveryIdentityDetails() {
         password: "",
         confirmPassword: ""
     });
+    const [errors, setErrors] = useState({});
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        setErrors(prev => ({ ...prev, [e.target.name]: null }));
     };
 
     const handleNext = (e) => {
         e.preventDefault();
-        if (formData.password !== formData.confirmPassword) {
-            toast.error("Passwords do not match");
+        const errs = {};
+        const nameErr = validateName(formData.fullName, "Full Name");
+        const dobErr = validateDOB(formData.dateOfBirth);
+        const phoneErr = validatePhone(formData.phone);
+        const pwErr = validatePassword(formData.password);
+        if (nameErr) errs.fullName = nameErr;
+        if (dobErr) errs.dateOfBirth = dobErr;
+        if (phoneErr) errs.phone = phoneErr;
+        if (pwErr) errs.password = pwErr;
+        if (formData.password !== formData.confirmPassword) errs.confirmPassword = "Passwords do not match.";
+
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            toast.error(Object.values(errs)[0]);
             return;
         }
 
@@ -77,9 +92,10 @@ export default function DeliveryIdentityDetails() {
                                         value={formData.fullName}
                                         onChange={handleChange}
                                         placeholder="Dominic Toretto"
-                                        className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40 placeholder:text-slate-600' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white placeholder:text-slate-300'}`}
+                                        className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${errors.fullName ? 'border-red-500' : (isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40 placeholder:text-slate-600' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white placeholder:text-slate-300')}`}
                                     />
                                 </div>
+                                {errors.fullName && <p className="text-red-500 text-[9px] font-black uppercase tracking-wider ml-1">⚠ {errors.fullName}</p>}
                             </div>
                             <div className="space-y-4">
                                 <label className={`text-[9px] font-black uppercase tracking-[3px] ml-1 flex items-center gap-2 italic transition-colors ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -93,9 +109,10 @@ export default function DeliveryIdentityDetails() {
                                         required
                                         value={formData.dateOfBirth}
                                         onChange={handleChange}
-                                        className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white color-scheme-dark'}`}
+                                        className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${errors.dateOfBirth ? 'border-red-500' : (isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white color-scheme-dark')}`}
                                     />
                                 </div>
+                                {errors.dateOfBirth && <p className="text-red-500 text-[9px] font-black uppercase tracking-wider ml-1">⚠ {errors.dateOfBirth}</p>}
                             </div>
                         </div>
 
@@ -111,10 +128,12 @@ export default function DeliveryIdentityDetails() {
                                     required
                                     value={formData.phone}
                                     onChange={handleChange}
-                                    placeholder="+91 XXXXX XXXXX"
-                                    className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40 placeholder:text-slate-600' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white placeholder:text-slate-300'}`}
+                                    placeholder="10-digit mobile number"
+                                    maxLength={10}
+                                    className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${errors.phone ? 'border-red-500' : (isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40 placeholder:text-slate-600' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white placeholder:text-slate-300')}`}
                                 />
                             </div>
+                            {errors.phone && <p className="text-red-500 text-[9px] font-black uppercase tracking-wider ml-1">⚠ {errors.phone}</p>}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -130,10 +149,11 @@ export default function DeliveryIdentityDetails() {
                                         required
                                         value={formData.password}
                                         onChange={handleChange}
-                                        placeholder="••••••••"
-                                        className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40 placeholder:text-slate-600' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white placeholder:text-slate-300'}`}
+                                        placeholder="Min 8, uppercase, number, special"
+                                        className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${errors.password ? 'border-red-500' : (isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40 placeholder:text-slate-600' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white placeholder:text-slate-300')}`}
                                     />
                                 </div>
+                                {errors.password && <p className="text-red-500 text-[9px] font-black uppercase tracking-wider ml-1">⚠ {errors.password}</p>}
                             </div>
                             <div className="space-y-4">
                                 <label className={`text-[9px] font-black uppercase tracking-[3px] ml-1 flex items-center gap-2 italic transition-colors ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -148,9 +168,10 @@ export default function DeliveryIdentityDetails() {
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
                                         placeholder="••••••••"
-                                        className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40 placeholder:text-slate-600' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white placeholder:text-slate-300'}`}
+                                        className={`w-full pl-16 pr-8 py-5 rounded-[24px] border-2 font-black italic outline-none transition-all shadow-inner ${errors.confirmPassword ? 'border-red-500' : (isDarkMode ? 'bg-[#020617] border-transparent focus:border-orange-500 text-white focus:bg-black/40 placeholder:text-slate-600' : 'bg-slate-50 border-slate-100 focus:border-orange-400 text-slate-900 focus:bg-white placeholder:text-slate-300')}`}
                                     />
                                 </div>
+                                {errors.confirmPassword && <p className="text-red-500 text-[9px] font-black uppercase tracking-wider ml-1">⚠ {errors.confirmPassword}</p>}
                             </div>
                         </div>
 

@@ -16,7 +16,7 @@ import {
     ShieldAlert,
     Zap
 } from 'lucide-react';
-import { fetchVendorRequests, approveVendorRequest, rejectVendorRequest } from '../api/axios';
+import { fetchVendorRequests, approveVendorRequest, rejectVendorRequest, logout } from '../api/axios';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
@@ -69,7 +69,7 @@ const VendorRequests = () => {
             <Sidebar
                 isSidebarOpen={isSidebarOpen}
                 activePage="Vendor Requests"
-                onLogout={() => window.location.href = '/'}
+                onLogout={logout}
             />
 
             <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
@@ -112,9 +112,9 @@ const VendorRequests = () => {
                                 >
                                     <div className="flex items-center gap-5">
                                         <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 ${stat.color === 'indigo' ? (isDarkMode ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600') :
-                                                stat.color === 'violet' ? (isDarkMode ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-50 text-violet-600') :
-                                                    stat.color === 'emerald' ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600') :
-                                                        (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600')
+                                            stat.color === 'violet' ? (isDarkMode ? 'bg-violet-500/10 text-violet-400' : 'bg-violet-50 text-violet-600') :
+                                                stat.color === 'emerald' ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600') :
+                                                    (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600')
                                             }`}>
                                             <stat.icon className="w-6 h-6" />
                                         </div>

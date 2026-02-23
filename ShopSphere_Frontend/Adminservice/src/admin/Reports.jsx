@@ -8,7 +8,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
 import NotificationBell from '../components/NotificationBell';
-import { fetchReports } from '../api/axios';
+import { fetchReports, logout } from '../api/axios';
 import { useTheme } from '../context/ThemeContext';
 
 // ─────────────────────────────────────────────────
@@ -367,12 +367,53 @@ const DeliveryReport = ({ data, isDark }) => (
 );
 
 // ─────────────────────────────────────────────────
+// 6. PLATFORM & USERS
+// ─────────────────────────────────────────────────
+const PlatformReport = ({ data, isDark }) => (
+    <div className="space-y-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <StatCard label="Total Customers" value={data.total_customers} icon={Users} color="indigo" isDark={isDark} />
+            <StatCard label="New Customers (7d)" value={data.new_users_week} icon={UserCheck} color="emerald" isDark={isDark} />
+            <StatCard label="Joined Today" value={data.new_users_today} icon={Clock} color="sky" isDark={isDark} />
+            <StatCard label="Active Status" value="Healthy" icon={ShieldCheck} color="violet" isDark={isDark} />
+        </div>
+
+        <Panel isDark={isDark}>
+            <PanelTitle icon={TrendingUp} iconClass="text-emerald-500" isDark={isDark}>Customer Growth Trace — Last 30 Days</PanelTitle>
+            <div className="overflow-y-auto max-h-64 pr-2">
+                <table className="w-full text-left">
+                    <thead className={`sticky top-0 border-b ${isDark ? 'bg-[#1e293b] border-slate-700/50' : 'bg-white border-slate-100'}`}>
+                        <tr>
+                            <th className={`pb-3 text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Registration Date</th>
+                            <th className={`pb-3 text-[10px] font-black uppercase tracking-widest text-right ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>New Sign-ups</th>
+                        </tr>
+                    </thead>
+                    <tbody className={`divide-y ${isDark ? 'divide-slate-700/50' : 'divide-slate-50'}`}>
+                        {(data.user_growth ?? []).length === 0 ? (
+                            <tr><td colSpan={2} className={`py-10 text-center text-sm ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>No customer growth data for this period</td></tr>
+                        ) : (
+                            (data.user_growth ?? []).map((u, i) => (
+                                <tr key={i} className={`transition-colors ${isDark ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/50'}`}>
+                                    <td className={`py-3 text-sm font-bold font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{u.day}</td>
+                                    <td className="py-3 text-sm font-black text-indigo-500 text-right">+{u.count}</td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </Panel>
+    </div>
+);
+
+// ─────────────────────────────────────────────────
 // MAIN
 // ─────────────────────────────────────────────────
 const TABS = [
     { key: 'Sales', label: 'Sales & Revenue' },
     { key: 'Commission', label: 'Commission' },
     { key: 'Vendor', label: 'Vendor Performance' },
+    { key: 'Platform', label: 'Platform & Users' },
     { key: 'Order', label: 'Order Status' },
     { key: 'Delivery', label: 'Delivery' },
 ];
@@ -403,9 +444,7 @@ const Reports = () => {
     useEffect(() => { loadReports(); }, [loadReports]);
 
     const handleLogout = () => {
-        sessionStorage.clear();
-        localStorage.removeItem('authToken');
-        window.location.href = '/';
+        logout();
     };
 
     return (
@@ -500,6 +539,7 @@ const Reports = () => {
                                 {activeReport === 'Sales' && <SalesReport data={reportData} isDark={isDarkMode} />}
                                 {activeReport === 'Commission' && <CommissionReport data={reportData} isDark={isDarkMode} />}
                                 {activeReport === 'Vendor' && <VendorReport data={reportData} isDark={isDarkMode} />}
+                                {activeReport === 'Platform' && <PlatformReport data={reportData} isDark={isDarkMode} />}
                                 {activeReport === 'Order' && <OrderStatusReport data={reportData} isDark={isDarkMode} />}
                                 {activeReport === 'Delivery' && <DeliveryReport data={reportData} isDark={isDarkMode} />}
                             </motion.div>

@@ -18,7 +18,7 @@ import {
     Zap,
     BarChart3
 } from 'lucide-react';
-import { fetchAdminOrders } from '../api/axios';
+import { fetchAdminOrders, logout } from '../api/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from '../components/NotificationBell';
@@ -78,7 +78,7 @@ const OrderManagement = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Orders" onLogout={() => window.location.href = '/'} />
+            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Orders" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
                 <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>

@@ -6,7 +6,8 @@ from .api_views import (
     CommissionSettingsViewSet, ReportsView,
     UserManagementView, UserBlockToggleView,
     TriggerAssignmentView, UnassignedOrdersView,
-    AdminOrderTrackingViewSet, AdminOrderViewSet, DeletionRequestViewSet
+    AdminOrderTrackingViewSet, AdminOrderViewSet, DeletionRequestViewSet,
+    AdminLoginView, WhoAmIView,
 )
 
 router = DefaultRouter()
@@ -34,6 +35,12 @@ urlpatterns = [
     # Delivery assignment management
     path('trigger-assignment/<int:order_id>/', TriggerAssignmentView.as_view(), name='trigger_assignment'),
     path('unassigned-orders/', UnassignedOrdersView.as_view(), name='unassigned_orders'),
+
+    # Dedicated Admin Login (enforces is_staff/is_superuser)
+    path('admin-login/', AdminLoginView.as_view(), name='admin_login_api'),
+
+    # Debug / whoami
+    path('whoami/', WhoAmIView.as_view(), name='whoami'),
 
     # Explicit global commission endpoint (router auto-generates global_ but frontend expects global)
     path('commission-settings/global/', CommissionSettingsViewSet.as_view({'get': 'global_', 'post': 'global_'}), name='commission_settings_global'),

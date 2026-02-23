@@ -18,6 +18,7 @@ import { fetchAllDeliveryAgents, blockDeliveryAgent, unblockDeliveryAgent } from
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from '../components/NotificationBell';
+import { logout } from '../api/axios';
 
 const DeliveryList = () => {
     const navigate = useNavigate();
@@ -77,7 +78,7 @@ const DeliveryList = () => {
             <Sidebar
                 isSidebarOpen={isSidebarOpen}
                 activePage="Delivery Agents"
-                onLogout={() => navigate('/')}
+                onLogout={logout}
             />
 
             <div className="flex-1 flex flex-col min-w-0">

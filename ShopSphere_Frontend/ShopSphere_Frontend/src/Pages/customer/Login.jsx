@@ -3,6 +3,7 @@ import { loginUser, googleLogin } from "../../api/axios";
 import { useNavigate, Link } from "react-router-dom";
 import toast from 'react-hot-toast';
 import { useGoogleLogin } from "@react-oauth/google";
+import { validateEmail, validatePassword } from "../../utils/validators";
 function Login() {
     const navigate = useNavigate();
     const [credentials, setCredentials] = useState({
@@ -11,14 +12,23 @@ function Login() {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const handleChange = (e) => {
         setCredentials({ ...credentials, [e.target.name]: e.target.value });
-        setError(''); // Clear error when user types
+        setError('');
+        setFieldErrors(prev => ({ ...prev, [e.target.name]: null }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const emailErr = validateEmail(credentials.email);
+        const pwErr = !credentials.password ? "Password is required." : null;
+        if (emailErr || pwErr) {
+            setFieldErrors({ email: emailErr, password: pwErr });
+            setError(emailErr || pwErr);
+            return;
+        }
         setLoading(true);
         setError("");
 
@@ -155,10 +165,9 @@ function Login() {
 
                         {/* Form */}
                         <form className="space-y-4" onSubmit={handleSubmit}>
-                            {/* Email Field */}
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                                 <label htmlFor="email" className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
-                                    Username / Email
+                                    Email Address
                                 </label>
                                 <div className="relative group">
                                     <input
@@ -167,15 +176,15 @@ function Login() {
                                         name="email"
                                         value={credentials.email}
                                         onChange={handleChange}
-                                        className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl text-gray-900 placeholder-gray-400 transition-all duration-300 hover:bg-white hover:border-orange-300 focus:outline-none focus:ring-4 focus:ring-orange-400/5 focus:border-orange-400 bg-white"
+                                        className={`w-full px-5 py-4 rounded-2xl text-gray-900 placeholder-gray-400 transition-all duration-300 focus:outline-none focus:ring-4 bg-white border ${fieldErrors.email ? 'border-red-400 focus:ring-red-100 bg-red-50' : 'border-gray-200 hover:border-orange-300 focus:ring-orange-400/5 focus:border-orange-400'}`}
                                         placeholder="Enter your email"
-                                        required
                                     />
                                 </div>
+                                {fieldErrors.email && <p className="text-red-500 text-xs font-bold ml-1">⚠ {fieldErrors.email}</p>}
                             </div>
 
                             {/* Password Field */}
-                            <div className="space-y-2">
+                            <div className="space-y-1">
                                 <div className="flex justify-between items-center ml-1">
                                     <label htmlFor="password" className="text-xs font-black text-gray-400 uppercase tracking-widest">
                                         Password
@@ -191,11 +200,11 @@ function Login() {
                                         name="password"
                                         value={credentials.password}
                                         onChange={handleChange}
-                                        className="w-full px-5 py-4 bg-gray-50/50 border border-gray-200 rounded-2xl text-gray-900 placeholder-gray-400 transition-all duration-300 hover:bg-white hover:border-orange-300 focus:outline-none focus:ring-4 focus:ring-orange-400/5 focus:border-orange-400 bg-white"
+                                        className={`w-full px-5 py-4 rounded-2xl text-gray-900 placeholder-gray-400 transition-all duration-300 focus:outline-none focus:ring-4 bg-white border ${fieldErrors.password ? 'border-red-400 focus:ring-red-100 bg-red-50' : 'border-gray-200 hover:border-orange-300 focus:ring-orange-400/5 focus:border-orange-400'}`}
                                         placeholder="••••••••"
-                                        required
                                     />
                                 </div>
+                                {fieldErrors.password && <p className="text-red-500 text-xs font-bold ml-1">⚠ {fieldErrors.password}</p>}
                             </div>
 
                             {/* Error Message */}

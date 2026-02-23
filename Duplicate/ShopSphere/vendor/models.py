@@ -109,6 +109,7 @@ class Product(models.Model):
     ]
 
     vendor = models.ForeignKey(VendorProfile, on_delete=models.CASCADE, related_name='products')
+    brand = models.CharField(max_length=100, blank=True, null=True)
     name = models.CharField(max_length=200)
     description = models.TextField()
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='other')

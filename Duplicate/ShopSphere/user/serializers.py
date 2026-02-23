@@ -43,19 +43,25 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'description', 'category', 'price', 
+            'id', 'name', 'brand', 'description', 'category', 'price', 
             'quantity', 'images', 'image', 'image_urls', 'status', 
             'is_blocked', 'created_at', 'vendor_name', 'average_rating'
         ]
 
     def get_average_rating(self, obj):
-        # If already annotated (like in get_trending_products), use that
-        if hasattr(obj, 'average_rating'):
-            return obj.average_rating
-        # Otherwise calculate it
+        # Use annotated values if available to avoid N+1 queries
+        rating = getattr(obj, 'average_rating', None)
+        if rating is None:
+            rating = getattr(obj, 'avg_rating', None)
+            
+        if rating is not None:
+            return round(float(rating), 1)
+            
+        # Fallback to calculation if not annotated (rare)
         from django.db.models import Avg
         avg = obj.reviews.aggregate(Avg('rating'))['rating__avg']
-        return avg or 0.0
+        return round(float(avg or 0.0), 1)
+
 
     def get_image(self, obj):
         request = self.context.get('request')
@@ -91,9 +97,21 @@ class AddressSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product_image = serializers.SerializerMethodField()
+
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'vendor', 'product_name', 'product_price', 'quantity', 'subtotal', 'vendor_status']
+        fields = ['id', 'product', 'vendor', 'product_name', 'product_price', 'quantity', 'subtotal', 'vendor_status', 'product_image']
+
+    def get_product_image(self, obj):
+        request = self.context.get('request')
+        first_image = obj.product.images.first()
+        if first_image:
+            path = reverse('serve_product_image', kwargs={'image_id': first_image.id})
+            if request:
+                return request.build_absolute_uri(path)
+            return path
+        return None
 
 
 class OrderTrackingSerializer(serializers.ModelSerializer):

@@ -16,8 +16,8 @@ export default function ProductCard({
         let imgPath = typeof img === 'string' ? img : (img.image || img.url);
         if (!imgPath) return "/public/placeholder.jpg";
         if (imgPath.startsWith('http')) return imgPath;
-        if (imgPath.startsWith('/')) return `http://127.0.0.1:8000${imgPath}`;
-        return `http://127.0.0.1:8000/${imgPath}`;
+        if (imgPath.startsWith('/')) return `http://localhost:8000${imgPath}`;
+        return `http://localhost:8000/${imgPath}`;
     });
 
     // Fallback image
@@ -66,7 +66,10 @@ export default function ProductCard({
 
             <div className="p-5 flex flex-col flex-1">
                 <div className="flex-1">
-                    <h3 className="font-bold text-lg text-gray-900 group-hover:text-orange-400 transition-colors line-clamp-1">{item.name}</h3>
+                    {/* Product Name */}
+                    <h3 className="font-bold text-lg text-gray-900 group-hover:text-orange-400 transition-colors line-clamp-1">
+                        {item.name}
+                    </h3>
 
                     {/* Rating Section */}
                     <div className="flex items-center gap-2 mt-2">
@@ -88,6 +91,19 @@ export default function ProductCard({
                     </div>
 
                     <p className="text-gray-500 text-sm line-clamp-2 mt-3">{item.description}</p>
+
+                    {/* Brand Badge - visible below description */}
+                    {item.brand && (
+                        <div className="mt-3">
+                            <span
+                                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-500 border border-orange-200 cursor-pointer hover:bg-orange-100 transition-colors"
+                                onClick={(e) => { e.stopPropagation(); navigate(`/brand/${item.brand}`); }}
+                            >
+                                <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
+                                {item.brand}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">

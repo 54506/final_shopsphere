@@ -914,6 +914,10 @@ function Orders() {
     }
   }, [dispatch, navigate, allProducts]);
 
+  const toggleExpand = (id) => {
+    setExpandedOrder(expandedOrder === id ? null : id);
+  };
+
 
   const getStatusDetails = (order) => {
     const status = (order.status || order.order_status || 'pending').toLowerCase();
@@ -1313,6 +1317,38 @@ function Orders() {
                             Track Order
                           </button>
                           <button
+                            onClick={() => {
+                              const handleGetInvoice = async (orderId, orderNumber) => {
+                                try {
+                                  const token = localStorage.getItem("accessToken");
+                                  const response = await fetch(`http://localhost:8000/invoice/${orderId}`, {
+                                    headers: {
+                                      'Authorization': `Bearer ${token}`
+                                    }
+                                  });
+                                  const responseText = await response.text();
+                                  if (!response.ok) {
+                                    throw new Error(responseText || "Failed to fetch invoice");
+                                  }
+
+                                  const blob = new Blob([responseText], { type: 'text/html' });
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `Invoice_${orderNumber}.html`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+
+                                  toast.success("Invoice downloaded");
+                                } catch (error) {
+                                  console.error(error);
+                                  toast.error("Failed to download invoice");
+                                }
+                              };
+                              handleGetInvoice(order.id, order.order_number);
+                            }}
                             className="flex-1 md:flex-none px-8 py-3 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200"
                           >
                             Invoice

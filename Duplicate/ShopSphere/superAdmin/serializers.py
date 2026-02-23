@@ -34,10 +34,16 @@ class AdminOrderDetailSerializer(serializers.ModelSerializer):
     delivery_assignment_status = serializers.CharField(source='delivery_assignment.status', read_only=True)
 
     def get_delivery_address(self, obj):
-        # Only return the address actually selected for this order.
-        # Do NOT substitute another address — show only what the customer chose.
+        # Prefer the explicit delivery address linked to the order
         address = obj.delivery_address
+        
+        # Fallback for missing delivery address
+        if not address:
+            address = Address.objects.filter(user=obj.user, is_default=True).first() or \
+                      Address.objects.filter(user=obj.user).first()
+                      
         if address:
+            # Note: We use the AddressSerializer already available in the scope
             return AddressSerializer(address).data
         return None
 
@@ -100,10 +106,12 @@ class AdminVendorDetailSerializer(serializers.ModelSerializer):
     approval_status_display = serializers.CharField(source='get_approval_status_display', read_only=True)
     approval_logs = VendorApprovalLogSerializer(source='approval_logs.all', many=True, read_only=True)
     
+    user_profile_image = serializers.ImageField(source='user.profile_image', read_only=True)
+    
     class Meta:
         model = VendorProfile
         fields = [
-            'id', 'user_username', 'user_email', 'user_phone', 'shop_name', 'shop_description',
+            'id', 'user_username', 'user_email', 'user_phone', 'user_profile_image', 'shop_name', 'shop_description',
             'address', 'business_type', 'id_type', 'id_number', 'id_proof_file',
             'gst_number', 'pan_number', 'pan_name', 'pan_card_file',
             'additional_documents', 'selfie_with_id',

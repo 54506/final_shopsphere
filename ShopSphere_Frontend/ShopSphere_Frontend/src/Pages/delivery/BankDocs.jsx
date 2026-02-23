@@ -14,6 +14,7 @@ import {
 import { toast } from "react-hot-toast";
 import { deliveryRegister } from "../../api/delivery_axios";
 import { useTheme } from "../../context/ThemeContext";
+import { validateBankAccount, validateIFSC, validatePAN, validateAadhaar, validateDrivingLicense } from "../../utils/validators";
 
 export default function DeliveryBankDocs() {
     const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function DeliveryBankDocs() {
         license_number: "",
         license_expires: ""
     });
+    const [fieldErrors, setFieldErrors] = useState({});
 
     const [files, setFiles] = useState({
         aadhar_card_file: null,
@@ -42,7 +44,10 @@ export default function DeliveryBankDocs() {
     });
 
     const handleChange = (e) => {
-        setBankData({ ...bankData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        const finalValue = ['bank_ifsc_code', 'pan_number', 'license_number'].includes(name) ? value.toUpperCase() : value;
+        setBankData({ ...bankData, [name]: finalValue });
+        setFieldErrors(prev => ({ ...prev, [name]: null }));
     };
 
     const handleFileChange = (e) => {
@@ -52,14 +57,23 @@ export default function DeliveryBankDocs() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const mandatoryFiles = [
-            'aadhar_card_file',
-            'pan_card_file',
-            'license_file',
-            'selfie_with_id'
-        ];
+        const fldErrs = {};
+        const acctErr = validateBankAccount(bankData.bank_account_number);
+        const ifscErr = validateIFSC(bankData.bank_ifsc_code);
+        const panErr = validatePAN(bankData.pan_number);
+        const aadhaarErr = validateAadhaar(bankData.aadhar_number);
+        const dlErr = validateDrivingLicense(bankData.license_number);
+        if (acctErr) fldErrs.bank_account_number = acctErr;
+        if (ifscErr) fldErrs.bank_ifsc_code = ifscErr;
+        if (panErr) fldErrs.pan_number = panErr;
+        if (aadhaarErr) fldErrs.aadhar_number = aadhaarErr;
+        if (dlErr) fldErrs.license_number = dlErr;
+        if (!bankData.bank_name || bankData.bank_name.trim().length < 2) fldErrs.bank_name = "Bank name is required.";
+        if (!bankData.bank_holder_name || bankData.bank_holder_name.trim().length < 3) fldErrs.bank_holder_name = "Account holder name is required.";
+        if (!bankData.license_expires) fldErrs.license_expires = "License expiry date is required.";
 
-        const missing = mandatoryFiles.filter(f => !files[f]);
+        const mandatoryFiles2 = ['aadhar_card_file', 'pan_card_file', 'license_file', 'selfie_with_id'];
+        const missing = mandatoryFiles2.filter(f => !files[f]);
         if (missing.length > 0) {
             toast.error(`Mandatory Verification Data Missing`, {
                 style: {
@@ -73,8 +87,14 @@ export default function DeliveryBankDocs() {
                     letterSpacing: '1px'
                 }
             });
+        }
+
+        if (Object.keys(fldErrs).length > 0) {
+            setFieldErrors(fldErrs);
+            toast.error(Object.values(fldErrs)[0]);
             return;
         }
+        if (missing.length > 0) return;
 
         setLoading(true);
         try {
