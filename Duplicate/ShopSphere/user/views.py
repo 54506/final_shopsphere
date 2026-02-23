@@ -995,7 +995,8 @@ def get_trending_products(request):
     # Trending considers search count and ratings
     trending = Product.objects.filter(
         status__in=['active', 'approved'],
-        is_blocked=False
+        is_blocked=False,
+        average_rating__gt=3
     ).order_by('-search_count', '-total_reviews', '-average_rating')[:12]
     
     serializer = ProductSerializer(trending, many=True, context={'request': request})
