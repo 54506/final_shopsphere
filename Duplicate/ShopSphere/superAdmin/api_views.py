@@ -1325,18 +1325,26 @@ class AdminLoginView(APIView):
         User = get_user_model()
 
         # Resolve username → email (our AUTH backend uses email as USERNAME_FIELD)
-        auth_email = username_or_email
-        if '@' not in username_or_email:
+        auth_email = username_or_email.strip().lower()
+        if '@' not in auth_email:
             try:
-                user_obj = User.objects.get(username=username_or_email)
-                auth_email = user_obj.email
-            except User.DoesNotExist:
-                return Response({'error': 'Invalid credentials.'}, status=401)
+                # Case-insensitive resolution
+                user_obj = User.objects.filter(username__iexact=username_or_email.strip()).first()
+                if user_obj:
+                    auth_email = user_obj.email
+                else:
+                    # Fallback to authenticating with what they provided (might fail)
+                    pass
+            except Exception:
+                pass
 
         user = authenticate(username=auth_email, password=password)
 
         if user is None:
-            return Response({'error': 'Invalid credentials.'}, status=401)
+            # Check if account exists to give better feedback
+            if User.objects.filter(email=auth_email).exists():
+                return Response({'error': 'Incorrect password.'}, status=401)
+            return Response({'error': 'No administrator account found with this email/username.'}, status=401)
 
         if not user.is_active:
             return Response({'error': 'This account is inactive.'}, status=403)

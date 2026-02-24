@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://duplicate-39hf.onrender.com";
 
 const getHeaders = () => {
     const token = localStorage.getItem("accessToken");
