@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Order Tracking - Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+        }
+
+        .header a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-left: 10px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 8px 20px;
+            text-decoration: none;
+            border-radius: 20px;
+            color: #666;
+            font-size: 14px;
+            transition: 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: #f0f0f0;
+        }
+
+        .tab.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-assigned {
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .status-accepted {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .status-picked_up {
+            background: #fef9c3;
+            color: #a16207;
+        }
+
+        .status-in_transit {
+            background: #ffedd5;
+            color: #9a3412;
+        }
+
+        .status-delivered {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .agent-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .agent-name {
+            font-weight: 600;
+        }
+
+        .agent-phone {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="header">
+        <h1>🚚 Live Order Tracking</h1>
+        <div>
+            <a href="{% url 'admin_dashboard' %}">🏠 Dashboard</a>
+            <a href="{% url 'admin_logout' %}">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="filter-tabs">
+                <a href="?status=all" class="tab {% if current_status == 'all' %}active{% endif %}">All Assignments</a>
+                <a href="?status=assigned"
+                    class="tab {% if current_status == 'assigned' %}active{% endif %}">Assigned</a>
+                <a href="?status=picked_up" class="tab {% if current_status == 'picked_up' %}active{% endif %}">Picked
+                    Up</a>
+                <a href="?status=in_transit" class="tab {% if current_status == 'in_transit' %}active{% endif %}">In
+                    Transit</a>
+                <a href="?status=delivered"
+                    class="tab {% if current_status == 'delivered' %}active{% endif %}">Delivered</a>
+            </div>
+
+            {% if assignments %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Agent</th>
+                        <th>City</th>
+                        <th>Status</th>
+                        <th>Assigned At</th>
+                        <th>Estimated Delivery</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in assignments %}
+                    <tr>
+                        <td><strong>{{ item.order.order_number }}</strong></td>
+                        <td>
+                            <div class="agent-info">
+                                <span class="agent-name">{{
+                                    item.agent.user.get_full_name|default:item.agent.user.username }}</span>
+                                <span class="agent-phone">{{ item.agent.phone_number }}</span>
+                            </div>
+                        </td>
+                        <td>{{ item.delivery_city }}</td>
+                        <td>
+                            <span class="status-badge status-{{ item.status }}">
+                                {{ item.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ item.assigned_at|date:"M d, H:i" }}</td>
+                        <td>{{ item.estimated_delivery_date }}</td>
+                        <td>
+                            <a href="{% url 'tracking_detail' item.id %}" style="font-size: 12px; color: #3b82f6;">View
+                                History</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-data">
+                <p>No delivery assignments found for this status.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>

@@ -3,7 +3,7 @@ services:
   - type: web
     name: shopsphere-backend
     runtime: python
-    rootDir: Duplicate/ShopSphere
+    rootDir: backend
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate --no-input
     startCommand: gunicorn ShopSphere.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     envVars:

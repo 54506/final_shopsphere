@@ -3,9 +3,9 @@
 ## Overview
 | Service | Platform | Folder |
 |---|---|---|
-| Django Backend | **Render** | `Duplicate/ShopSphere` |
-| ShopSphere User Frontend | **Vercel** | `ShopSphere_Frontend/ShopSphere_Frontend` |
-| Admin Service Frontend | **Vercel** | `ShopSphere_Frontend/Adminservice` |
+| Django Backend | **Render** | `backend` |
+| ShopSphere User Frontend | **Vercel** | `user-frontend` |
+| Admin Service Frontend | **Vercel** | `admin-service` |
 
 ---
 
@@ -20,7 +20,7 @@
 | Setting | Value |
 |---|---|
 | **Name** | `shopsphere-backend` |
-| **Root Directory** | `Duplicate/ShopSphere` |
+| **Root Directory** | `backend` |
 | **Runtime** | `Python 3` |
 | **Build Command** | `pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate --no-input` |
 | **Start Command** | `gunicorn ShopSphere.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120` |
@@ -60,7 +60,7 @@ https://shopsphere-backend.onrender.com
 ### A. Import Project
 1. Go to [vercel.com](https://vercel.com) → **Add New Project**
 2. Import your GitHub repo
-3. Set **Root Directory**: `ShopSphere_Frontend/ShopSphere_Frontend`
+3. Set **Root Directory**: `user-frontend`
 4. Framework Preset: **Vite** (auto-detected)
 
 ### B. Set Environment Variable
@@ -81,7 +81,7 @@ Click **Deploy**. Note your Vercel URL (e.g., `https://shopsphere-xyz.vercel.app
 
 ### A. Import Project (second project)
 1. Vercel → **Add New Project** → same GitHub repo
-2. Set **Root Directory**: `ShopSphere_Frontend/Adminservice`
+2. Set **Root Directory**: `admin-service`
 3. Framework Preset: **Vite**
 
 ### B. Set Environment Variable
@@ -113,13 +113,13 @@ Before deploying, make sure your code is on GitHub. The key files added/modified
 
 ```
 render.yaml                                          ← Render config (root)
-Duplicate/ShopSphere/.gitignore                      ← Backend gitignore
-Duplicate/ShopSphere/ShopSphere/settings.py          ← Production settings
-Duplicate/ShopSphere/ShopSphere/urls.py              ← Fixed static files
-ShopSphere_Frontend/ShopSphere_Frontend/vercel.json  ← Vercel config
-ShopSphere_Frontend/ShopSphere_Frontend/.env.example ← Env template
-ShopSphere_Frontend/Adminservice/vercel.json         ← Vercel config
-ShopSphere_Frontend/Adminservice/.env.example        ← Env template
+backend/.gitignore                      ← Backend gitignore
+backend/ShopSphere/settings.py          ← Production settings
+backend/ShopSphere/urls.py              ← Fixed static files
+user-frontend/vercel.json               ← Vercel config
+user-frontend/.env.example              ← Env template
+admin-service/vercel.json               ← Vercel config
+admin-service/.env.example              ← Env template
 ```
 
 ### Push Commands

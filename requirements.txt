@@ -1,4 +1,4 @@
--r Duplicate/ShopSphere/requirements.txt
+-r backend/requirements.txt
 gunicorn
 dj-database-url
 whitenoise
