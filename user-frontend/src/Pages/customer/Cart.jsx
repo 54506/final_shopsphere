@@ -205,21 +205,21 @@ function Cart() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff] py-6 sm:py-8 md:py-12 px-3 sm:px-4 md:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-10">
+        <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 lg:gap-10">
           {/* ─── Left Column ─── */}
           <div className="flex-grow lg:w-2/3">
             {/* Header */}
-            <div className="flex items-center justify-between mb-10">
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-4">
-                <span className="bg-gradient-to-r from-orange-400 to-purple-500 text-white p-3 rounded-2xl shadow-lg shadow-orange-400/20">
+            <div className="flex items-center justify-between mb-6 sm:mb-10">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2 sm:gap-4">
+                <span className="bg-gradient-to-r from-orange-400 to-purple-500 text-white p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg shadow-orange-400/20">
                   🛒
                 </span>
                 Shopping Cart
               </h1>
-              <span className="text-gray-400 font-bold bg-white px-5 py-2 rounded-full border border-gray-100 shadow-sm">
-                {cartObjects.length} Items Selected
+              <span className="text-gray-400 font-bold bg-white px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border border-gray-100 shadow-sm text-xs sm:text-base">
+                {cartObjects.length} Items
               </span>
             </div>
 
@@ -229,9 +229,9 @@ function Cart() {
                 {cartObjects.map((item, index) => (
                   <div
                     key={index}
-                    className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-8 group hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
+                    className="bg-white rounded-[20px] sm:rounded-[28px] md:rounded-[32px] p-4 sm:p-6 shadow-sm border border-gray-100 flex flex-row items-center gap-3 sm:gap-4 md:gap-8 group hover:shadow-xl hover:-translate-y-1 transition-all duration-500"
                   >
-                    <div className="w-32 h-32 bg-gray-50 rounded-[24px] overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform duration-500 border border-gray-50">
+                    <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-gray-50 rounded-[16px] sm:rounded-[20px] md:rounded-[24px] overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform duration-500 border border-gray-50">
                       <img
                         src={item.image}
                         alt={item.name}
@@ -239,14 +239,14 @@ function Cart() {
                       />
                     </div>
 
-                    <div className="flex-grow text-center md:text-left">
-                      <h3 className="text-xl font-black text-gray-900 mb-1 tracking-tight">
+                    <div className="flex-grow min-w-0">
+                      <h3 className="text-sm sm:text-base md:text-xl font-black text-gray-900 mb-0.5 sm:mb-1 tracking-tight line-clamp-1">
                         {item.name}
                       </h3>
-                      <p className="text-gray-400 text-sm font-medium mb-4 line-clamp-1">
+                      <p className="text-gray-400 text-xs sm:text-sm font-medium mb-2 sm:mb-4 line-clamp-1 hidden sm:block">
                         {item.description}
                       </p>
-                      <div className="text-2xl font-black text-orange-400 flex items-center justify-center gap-1">
+                      <div className="text-base sm:text-xl md:text-2xl font-black text-orange-400 flex items-center gap-1">
                         <span className="text-sm text-gray-400 font-bold">
                           Price:
                         </span>{" "}
@@ -254,32 +254,32 @@ function Cart() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-5 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+                    <div className="flex items-center gap-2 sm:gap-5 bg-gray-50 p-1.5 sm:p-2 rounded-xl sm:rounded-2xl border border-gray-100 flex-shrink-0">
                       <button
-                        onClick={() => dispatch(DecrCart(item))}
-                        className="bg-white hover:bg-red-50 text-red-500 w-10 h-10 rounded-xl transition-all shadow-sm border border-gray-100 flex items-center justify-center"
+                        onClick={(e) => { e.stopPropagation(); dispatch(DecrCart(item)); }}
+                        className="bg-white hover:bg-red-50 text-red-500 w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all shadow-sm border border-gray-100 flex items-center justify-center min-w-[36px] min-h-[36px]"
                         disabled={item.quantity <= 1}
                       >
                         <FaMinus size={12} />
                       </button>
-                      <span className="text-lg font-black text-gray-900 w-8 text-center">
+                      <span className="text-sm sm:text-lg font-black text-gray-900 w-6 sm:w-8 text-center">
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => dispatch(IncrCart(item))}
-                        className="bg-white hover:bg-purple-50 text-purple-500 w-10 h-10 rounded-xl transition-all shadow-sm border border-gray-100 flex items-center justify-center"
+                        onClick={(e) => { e.stopPropagation(); dispatch(IncrCart(item)); }}
+                        className="bg-white hover:bg-purple-50 text-purple-500 w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all shadow-sm border border-gray-100 flex items-center justify-center min-w-[36px] min-h-[36px]"
                       >
                         <FaPlus size={12} />
                       </button>
                     </div>
 
-                    <div className="flex flex-col items-center md:items-end gap-3 min-w-[120px]">
-                      <div className="text-xl font-black text-gray-900">
+                    <div className="hidden sm:flex flex-col items-center md:items-end gap-2 sm:gap-3 min-w-[100px] sm:min-w-[120px]">
+                      <div className="text-base sm:text-xl font-black text-gray-900">
                         ₹{(item.price * item.quantity).toFixed(2)}
                       </div>
                       <button
-                        onClick={() => dispatch(RemoveFromCart(item))}
-                        className="flex items-center gap-2 text-sm font-bold text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl transition-all"
+                        onClick={(e) => { e.stopPropagation(); dispatch(RemoveFromCart(item)); }}
+                        className="flex items-center gap-2 text-xs sm:text-sm font-bold text-red-500 hover:bg-red-50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all min-h-[36px]"
                       >
                         <FaTrashAlt size={14} /> Remove
                       </button>
@@ -290,10 +290,10 @@ function Cart() {
                 {/* ══════════════════════════════════════════════
                     ADDRESS SECTION  
                    ══════════════════════════════════════════════ */}
-                <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 mt-2">
+                <div className="bg-white rounded-[20px] sm:rounded-[28px] md:rounded-[32px] p-4 sm:p-6 md:p-8 shadow-sm border border-gray-100 mt-2">
                   {/* Section Header */}
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2 sm:gap-3">
                       <FaMapMarkerAlt className="text-orange-400" />
                       Delivery Address
                     </h2>
@@ -496,7 +496,7 @@ function Cart() {
                                   e.stopPropagation();
                                   handleEdit(addr);
                                 }}
-                                className="p-2 text-orange-400 hover:bg-orange-50 rounded-lg transition"
+                                className="p-2.5 text-orange-400 hover:bg-orange-50 rounded-lg transition min-w-[40px] min-h-[40px] flex items-center justify-center"
                                 title="Edit Address"
                               >
                                 <FaEdit />
@@ -506,7 +506,7 @@ function Cart() {
                                   e.stopPropagation();
                                   handleDelete(addr.id);
                                 }}
-                                className="p-2 text-red-400 hover:bg-red-50 rounded-lg transition"
+                                className="p-2.5 text-red-400 hover:bg-red-50 rounded-lg transition min-w-[40px] min-h-[40px] flex items-center justify-center"
                                 title="Delete Address"
                               >
                                 <FaTrashAlt />
@@ -521,19 +521,19 @@ function Cart() {
               </div>
             ) : (
               // ─── Empty Cart State ───
-              <div className="text-center py-20 bg-white rounded-[40px] shadow-sm border border-gray-100">
-                <div className="mb-6 relative inline-block">
-                  <div className="text-9xl opacity-20 transform rotate-12">
+              <div className="text-center py-12 sm:py-20 bg-white rounded-[24px] sm:rounded-[32px] md:rounded-[40px] shadow-sm border border-gray-100">
+                <div className="mb-4 sm:mb-6 relative inline-block">
+                  <div className="text-6xl sm:text-9xl opacity-20 transform rotate-12">
                     🛒
                   </div>
                   <div className="absolute -bottom-2 -right-2 text-4xl bounce">
                     🕸️
                   </div>
                 </div>
-                <h2 className="text-3xl font-black text-gray-900 mb-3">
+                <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-2 sm:mb-3">
                   Your cart is empty
                 </h2>
-                <p className="text-gray-400 mb-8 text-lg max-w-md mx-auto">
+                <p className="text-gray-400 mb-6 sm:mb-8 text-sm sm:text-lg max-w-md mx-auto px-4">
                   Looks like you haven't added anything yet. Explore our products
                   and find something you love!
                 </p>
@@ -550,8 +550,8 @@ function Cart() {
           {/* ─── Right Column: Order Summary ─── */}
           {cartObjects.length > 0 && (
             <div className="lg:w-1/3 space-y-6">
-              <div className="bg-white rounded-[32px] p-8 shadow-xl shadow-orange-100/50 border border-gray-100 sticky top-24">
-                <h2 className="text-2xl font-black text-gray-900 mb-8 flex items-center gap-3">
+              <div className="bg-white rounded-[20px] sm:rounded-[28px] md:rounded-[32px] p-5 sm:p-6 md:p-8 shadow-xl shadow-orange-100/50 border border-gray-100 sticky top-20 sm:top-24">
+                <h2 className="text-xl sm:text-2xl font-black text-gray-900 mb-5 sm:mb-8 flex items-center gap-2 sm:gap-3">
                   <span className="bg-yellow-100 text-yellow-600 p-2 rounded-xl">
                     <FaReceipt size={20} />
                   </span>

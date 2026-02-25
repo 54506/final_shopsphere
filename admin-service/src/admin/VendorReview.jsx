@@ -20,7 +20,10 @@ import {
     Zap,
     CheckCircle,
     XCircle,
-    Loader2
+    Loader2,
+    PanelLeftClose,
+    PanelLeftOpen,
+    Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
@@ -44,7 +47,7 @@ const VendorReview = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { isDarkMode } = useTheme();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
     const { markAsRead } = useNotifications();
     const [vendor, setVendor] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -127,7 +130,7 @@ const VendorReview = () => {
                     </div>
                     <div className="text-center">
                         <p className={`text-[10px] font-semibold uppercase tracking-normal mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Synchronizing Identity</p>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-normal">Pulling Node_{id} Metadata...</p>
+                        <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-normal hidden sm:block">Pulling Node_{id} Metadata...</p>
                     </div>
                 </div>
             </div>
@@ -161,18 +164,18 @@ const VendorReview = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Vendors" onLogout={logout} />
+            <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activePage="Vendors" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0">
-                <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
+                <header className={`border-b px-4 sm:px-6 lg:px-8 h-14 sm:h-16 lg:h-20 flex items-center justify-between sticky top-0 z-20 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => navigate(-1)} className={`p-2.5 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-blue-600 shadow-sm'}`}>
+                        <button onClick={() => navigate('/vendors/requests')} className={`p-2.5 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-blue-600 shadow-sm'}`}>
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                         <div className={`w-px h-6 hidden sm:block mx-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`} />
                         <div>
                             <div className="flex items-center gap-2">
-                                <h1 className={`text-lg font-semibold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                                <h1 className={`text-sm sm:text-base lg:text-lg font-semibold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                                     {vendor.approval_status === 'approved' ? 'Partner Audit' : 'Security Clearance'}
                                 </h1>
                                 <span className={`text-[8px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-normal ${isDarkMode ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>Priority</span>
@@ -184,13 +187,13 @@ const VendorReview = () => {
                     </div>
                     <div className="flex items-center gap-6">
                         <NotificationBell />
-                        <div className={`hidden lg:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                        <div className={`hidden xl:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                             <ShieldCheck className="w-3.5 h-3.5" /> Registry Protocol 2.4
                         </div>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-transparent">
+                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 bg-transparent">
                     <div className="max-w-6xl mx-auto space-y-8 pb-32">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -287,7 +290,7 @@ const VendorReview = () => {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[9px] font-semibold text-slate-500 uppercase tracking-normal block">Logistics Tariff Base</label>
-                                            <p className={`text-lg font-semibold tracking-normal ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>₹{parseFloat(vendor.shipping_fee || 0).toFixed(2)}</p>
+                                            <p className={`text-sm sm:text-base lg:text-lg font-semibold tracking-normal ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>₹{parseFloat(vendor.shipping_fee || 0).toFixed(2)}</p>
                                         </div>
                                     </div>
                                 </motion.section>
@@ -619,7 +622,7 @@ const VendorReview = () => {
                                                     </div>
                                                     <div>
                                                         <p className={`font-bold text-sm mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>View ID Document</p>
-                                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-normal">Type: {vendor.id_type} · Ref: {vendor.id_number}</p>
+                                                        <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-normal hidden sm:block">Type: {vendor.id_type} · Ref: {vendor.id_number}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -639,7 +642,7 @@ const VendorReview = () => {
                                                     </div>
                                                     <div>
                                                         <p className={`font-bold text-sm mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>View PAN Asset</p>
-                                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-normal">Name: {vendor.pan_name} · Ref: {vendor.pan_number}</p>
+                                                        <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-normal hidden sm:block">Name: {vendor.pan_name} · Ref: {vendor.pan_number}</p>
                                                     </div>
                                                 </div>
                                             </div>

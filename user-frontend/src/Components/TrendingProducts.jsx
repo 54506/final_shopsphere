@@ -24,7 +24,7 @@ function getImageUrl(item) {
 
 function SkeletonCard() {
     return (
-        <div className="flex-shrink-0 w-[200px] md:w-[220px] h-[300px] rounded-2xl bg-gray-100 overflow-hidden animate-pulse">
+        <div className="flex-shrink-0 w-[160px] sm:w-[200px] md:w-[220px] h-[260px] sm:h-[300px] rounded-2xl bg-gray-100 overflow-hidden animate-pulse">
             <div className="h-[50%] bg-gray-200" />
             <div className="p-3 space-y-2">
                 <div className="h-3 bg-gray-200 rounded-full w-3/4" />
@@ -116,7 +116,7 @@ export default function TrendingProducts({
     if (error || (!isLoading && trendingProducts.length === 0)) return null;
 
     return (
-        <section className="relative py-10 overflow-hidden" id="trending-section">
+        <section className="relative py-6 sm:py-10 overflow-hidden" id="trending-section">
             {/* Background */}
             <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 overflow-hidden">
                 <div className="absolute top-6 left-[10%] w-52 h-52 bg-orange-400/20 rounded-full blur-[100px] animate-pulse" />
@@ -131,16 +131,16 @@ export default function TrendingProducts({
                 />
             </div>
 
-            <div className="relative z-10 max-w-[1600px] mx-auto px-6 md:px-12">
+            <div className="relative z-10 max-w-[1600px] mx-auto px-3 sm:px-6 md:px-12">
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="flex items-center justify-between mb-8"
+                    className="flex items-center justify-between mb-5 sm:mb-8"
                 >
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                         {/* Fire badge */}
                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-400/30 backdrop-blur-xl">
                             <FaFire className="text-orange-400 animate-pulse" size={11} />
@@ -150,7 +150,7 @@ export default function TrendingProducts({
                         </div>
 
                         {/* Title */}
-                        <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">
                             Trending
                             <span className="bg-gradient-to-r from-orange-400 via-rose-400 to-purple-500 bg-clip-text text-transparent"> Products</span>
                         </h2>
@@ -161,7 +161,7 @@ export default function TrendingProducts({
                         <button
                             onClick={() => scroll("left")}
                             disabled={!canScrollLeft}
-                            className={`p-2 rounded-xl border transition-all duration-300 ${canScrollLeft
+                            className={`p-2.5 rounded-xl border transition-all duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center ${canScrollLeft
                                 ? "border-white/20 text-white hover:bg-white/10 hover:border-white/40"
                                 : "border-white/5 text-white/20 cursor-not-allowed"
                                 }`}
@@ -171,7 +171,7 @@ export default function TrendingProducts({
                         <button
                             onClick={() => scroll("right")}
                             disabled={!canScrollRight}
-                            className={`p-2 rounded-xl border transition-all duration-300 ${canScrollRight
+                            className={`p-2.5 rounded-xl border transition-all duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center ${canScrollRight
                                 ? "border-white/20 text-white hover:bg-white/10 hover:border-white/40"
                                 : "border-white/5 text-white/20 cursor-not-allowed"
                                 }`}
@@ -184,7 +184,7 @@ export default function TrendingProducts({
                 {/* Carousel */}
                 <div
                     ref={scrollRef}
-                    className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide scroll-smooth"
+                    className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 scrollbar-hide scroll-smooth"
                     style={{ scrollSnapType: "x mandatory" }}
                 >
                     {isLoading
@@ -196,13 +196,13 @@ export default function TrendingProducts({
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.4, delay: index * 0.08 }}
-                                className="flex-shrink-0 w-[200px] md:w-[220px] group"
+                                className="flex-shrink-0 w-[160px] sm:w-[200px] md:w-[220px] group"
                                 style={{ scrollSnapAlign: "start" }}
                                 onMouseEnter={() => setHoveredId(item.id)}
                                 onMouseLeave={() => setHoveredId(null)}
                             >
                                 <div
-                                    className="relative h-[300px] rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-[1.04]"
+                                    className="relative h-[260px] sm:h-[300px] rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-[1.04]"
                                     onClick={() => navigate(`/product/${item.id}`)}
                                 >
                                     {/* Card bg */}
@@ -297,7 +297,7 @@ export default function TrendingProducts({
                                                         e.stopPropagation();
                                                         handleWishlistClick(item);
                                                     }}
-                                                    className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-rose-500/50 transition-all duration-300 group/wish"
+                                                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-rose-500/50 transition-all duration-300 group/wish min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center"
                                                 >
                                                     <FaHeart
                                                         size={11}
@@ -314,7 +314,7 @@ export default function TrendingProducts({
                                                         e.stopPropagation();
                                                         handleAddToCartClick(item);
                                                     }}
-                                                    className="p-2 rounded-xl bg-gradient-to-r from-orange-400 to-purple-500 text-white hover:from-orange-500 hover:to-purple-500 transition-all duration-300 shadow-md shadow-orange-400/25 active:scale-95"
+                                                    className="p-2.5 rounded-xl bg-gradient-to-r from-orange-400 to-purple-500 text-white hover:from-orange-500 hover:to-purple-500 transition-all duration-300 shadow-md shadow-orange-400/25 active:scale-95 min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center"
                                                 >
                                                     <FaShoppingBag size={11} />
                                                 </button>

@@ -19,7 +19,8 @@ import OrderManagement from './admin/OrderManagement';
 import OrderDetail from './admin/OrderDetail';
 import DeletionRequests from './admin/DeletionRequests';
 import Queries from './admin/Queries';
-
+import ReturnsManagement from './admin/ReturnsManagement';
+import ReturnDetail from './admin/ReturnDetail';
 import { NotificationProvider } from './context/NotificationContext';
 import { UserProvider } from './context/UserContext';
 import { ProductProvider } from './context/ProductContext';
@@ -144,6 +145,22 @@ function App() {
                   element={
                     <ProtectedAdminRoute>
                       <OrderManagement />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="/returns"
+                  element={
+                    <ProtectedAdminRoute>
+                      <ReturnsManagement />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="/returns/:id"
+                  element={
+                    <ProtectedAdminRoute>
+                      <ReturnDetail />
                     </ProtectedAdminRoute>
                   }
                 />

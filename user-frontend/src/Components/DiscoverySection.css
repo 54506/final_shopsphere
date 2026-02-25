@@ -186,6 +186,38 @@
 }
 
 @media (max-width: 640px) {
+  .discovery-section-wrapper {
+    padding: 2rem 0.75rem;
+  }
+
+  .discovery-container {
+    border-radius: 1.5rem;
+  }
+
+  .discovery-content {
+    min-height: auto;
+  }
+
+  .discovery-text-column {
+    padding: 2rem 1.5rem;
+  }
+
+  .discovery-title {
+    font-size: 1.75rem;
+  }
+
+  .discovery-description {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .discovery-cta {
+    min-height: 48px;
+    padding: 0.875rem 2rem;
+    width: 100%;
+    justify-content: center;
+  }
+
   .discovery-grid {
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: auto;
@@ -197,5 +229,9 @@
 
   .discovery-grid-item.col-span-2 {
     grid-column: span 2;
+  }
+
+  .discovery-grid-column {
+    padding: 1rem;
   }
 }

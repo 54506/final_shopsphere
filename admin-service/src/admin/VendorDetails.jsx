@@ -27,7 +27,8 @@ import {
     Banknote,
     ChevronDown,
     Package,
-    Activity
+    Activity,
+    Menu
 } from 'lucide-react';
 
 const VendorDetails = () => {
@@ -40,7 +41,7 @@ const VendorDetails = () => {
     const [isLoadingProducts, setIsLoadingProducts] = useState(true);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const { updateProductStatus } = useProducts();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
     const loadProducts = useCallback(async (vendorId) => {
         setIsLoadingProducts(true);
@@ -52,6 +53,15 @@ const VendorDetails = () => {
         } finally {
             setIsLoadingProducts(false);
         }
+    }, []);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) setIsSidebarOpen(false);
+            else if (window.innerWidth >= 1024) setIsSidebarOpen(true);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     const loadData = useCallback(async () => {
@@ -103,9 +113,9 @@ const VendorDetails = () => {
 
     if (!vendor) {
         return (
-            <div className={`flex h-screen items-center justify-center ${dm ? 'bg-[#0f172a]' : 'bg-gray-50'}`}>
+            <div className={`flex h - screen items - center justify - center ${dm ? 'bg-[#0f172a]' : 'bg-gray-50'} `}>
                 <div className="text-center space-y-4">
-                    <h2 className={`text-2xl font-bold ${dm ? 'text-white' : 'text-gray-800'}`}>Vendor Not Found</h2>
+                    <h2 className={`text - 2xl font - bold ${dm ? 'text-white' : 'text-gray-800'} `}>Vendor Not Found</h2>
                     <button onClick={() => navigate('/vendors')} className="text-emerald-400 hover:underline font-medium">
                         Go back to Vendors list
                     </button>
@@ -115,25 +125,26 @@ const VendorDetails = () => {
     }
 
     return (
-        <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${dm ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Vendors" onLogout={logout} />
+        <div className={`flex h - screen font - sans overflow - hidden transition - colors duration - 300 ${dm ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'} `}>
+            <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activePage="Vendors" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 overflow-hidden">
                 {/* Header */}
-                <header className={`border-b px-4 md:px-8 py-4 flex items-center justify-between z-20 transition-colors duration-300 ${dm ? 'bg-[#1e293b] border-slate-700/50' : 'bg-white border-slate-200'}`}>
+                <header className={`border - b px - 4 md: px - 8 py - 4 flex items - center justify - between z - 20 transition - colors duration - 300 ${dm ? 'bg-[#1e293b] border-slate-700/50' : 'bg-white border-slate-200'} `}>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className={`p-2 rounded-lg transition-all ${dm ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
+                            className={`p - 2 rounded - lg transition - all ${dm ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-100 text-slate-500'} `}
                         >
-                            {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+                            <span className="md:hidden"><Menu className="w-5 h-5" /></span>
+                            <span className="hidden md:block">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}</span>
                         </button>
                         <div className="flex flex-col">
                             <div className="flex items-center gap-2">
-                                <Store className={`w-5 h-5 ${dm ? 'text-slate-300' : 'text-slate-800'}`} />
-                                <h1 className={`text-xl font-bold tracking-normal ${dm ? 'text-white' : 'text-slate-900'}`}>Vendor Profile</h1>
+                                <Store className={`w - 5 h - 5 ${dm ? 'text-slate-300' : 'text-slate-800'} `} />
+                                <h1 className={`text - xl font - bold tracking - normal ${dm ? 'text-white' : 'text-slate-900'} `}>Vendor Profile</h1>
                             </div>
-                            <p className={`text-xs font-medium ml-7 ${dm ? 'text-slate-500' : 'text-slate-500'}`}>Review and manage vendor account details and listings</p>
+                            <p className={`text - xs font - medium ml - 7 ${dm ? 'text-slate-500' : 'text-slate-500'} `}>Review and manage vendor account details and listings</p>
                         </div>
                     </div>
 
@@ -142,11 +153,11 @@ const VendorDetails = () => {
                     </div>
                 </header>
 
-                <main className={`flex-1 overflow-y-auto transition-colors duration-300 ${dm ? 'bg-[#0f172a]' : 'bg-gray-50/50'}`}>
+                <main className={`flex - 1 overflow - y - auto transition - colors duration - 300 ${dm ? 'bg-[#0f172a]' : 'bg-gray-50/50'} `}>
                     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
                         {/* Back Button */}
                         <button
-                            onClick={() => navigate(-1)}
+                            onClick={() => navigate('/vendors')}
                             className="flex items-center gap-2 text-slate-500 hover:text-emerald-800 transition-colors font-medium"
                         >
                             <ArrowLeft className="w-4 h-4" />
@@ -154,9 +165,9 @@ const VendorDetails = () => {
                         </button>
 
                         {/* Vendor Information Card */}
-                        <div className={`rounded-xl border overflow-hidden transition-colors ${dm ? 'bg-[#1e293b] border-slate-700/50' : 'bg-white border-gray-100 shadow-sm'}`}>
-                            <div className={`px-4 md:px-8 py-4 border-b ${dm ? 'border-slate-700/50 bg-[#1e293b]' : 'border-gray-100 bg-white'}`}>
-                                <h2 className={`text-lg md:text-xl font-bold ${dm ? 'text-white' : 'text-slate-800'}`}>Vendor Information</h2>
+                        <div className={`rounded - xl border overflow - hidden transition - colors ${dm ? 'bg-[#1e293b] border-slate-700/50' : 'bg-white border-gray-100 shadow-sm'} `}>
+                            <div className={`px - 4 md: px - 8 py - 4 border - b ${dm ? 'border-slate-700/50 bg-[#1e293b]' : 'border-gray-100 bg-white'} `}>
+                                <h2 className={`text - lg md: text - xl font - bold ${dm ? 'text-white' : 'text-slate-800'} `}>Vendor Information</h2>
                             </div>
 
                             <div className="p-4 md:p-8">
@@ -165,10 +176,10 @@ const VendorDetails = () => {
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-normal mb-1.5 flex items-center gap-2">
                                             <Store size={12} className="text-emerald-500" /> Organizational Identity
                                         </label>
-                                        <div className={`p-4 rounded-xl border min-h-[100px] ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
+                                        <div className={`p - 4 rounded - xl border min - h - [100px] ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'} `}>
                                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-normal mb-1">Shop Details</p>
-                                            <p className={`text-sm font-bold uppercase tracking-normal mb-2 ${dm ? 'text-white' : 'text-slate-900'}`}>{vendor.shop_name}</p>
-                                            <p className={`text-xs leading-relaxed ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{vendor.shop_description || 'No description provided'}</p>
+                                            <p className={`text - sm font - bold uppercase tracking - normal mb - 2 ${dm ? 'text-white' : 'text-slate-900'} `}>{vendor.shop_name}</p>
+                                            <p className={`text - xs leading - relaxed ${dm ? 'text-slate-400' : 'text-slate-500'} `}>{vendor.shop_description || 'No description provided'}</p>
                                         </div>
                                     </div>
 
@@ -176,9 +187,9 @@ const VendorDetails = () => {
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-normal mb-1.5 flex items-center gap-2">
                                             <Building2 size={12} className="text-blue-500" /> Business Classification
                                         </label>
-                                        <div className={`p-4 rounded-xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
-                                            <p className={`text-[10px] font-semibold uppercase tracking-normal mb-1 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Category & Fee</p>
-                                            <p className={`text-sm font-bold uppercase tracking-normal mb-1 ${dm ? 'text-white' : 'text-slate-900'}`}>{vendor.business_type}</p>
+                                        <div className={`p - 4 rounded - xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'} `}>
+                                            <p className={`text - [10px] font - semibold uppercase tracking - normal mb - 1 ${dm ? 'text-slate-500' : 'text-slate-400'} `}>Category & Fee</p>
+                                            <p className={`text - sm font - bold uppercase tracking - normal mb - 1 ${dm ? 'text-white' : 'text-slate-900'} `}>{vendor.business_type}</p>
                                             <p className="text-xs font-semibold text-emerald-600 uppercase tracking-normal">Base Shipping: ₹{vendor.shipping_fee || '0.00'}</p>
                                         </div>
                                     </div>
@@ -187,16 +198,16 @@ const VendorDetails = () => {
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-normal mb-1.5 flex items-center gap-2">
                                             <ShieldCheck size={12} className="text-emerald-500" /> Taxation & Compliance
                                         </label>
-                                        <div className={`p-4 rounded-xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
-                                            <p className={`text-[10px] font-semibold uppercase tracking-normal mb-1 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Tax Identifiers</p>
+                                        <div className={`p - 4 rounded - xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'} `}>
+                                            <p className={`text - [10px] font - semibold uppercase tracking - normal mb - 1 ${dm ? 'text-slate-500' : 'text-slate-400'} `}>Tax Identifiers</p>
                                             <div className="flex flex-col gap-1">
                                                 <div className="flex justify-between items-center text-xs">
                                                     <span className="text-slate-400 font-bold uppercase tracking-normal text-[9px]">GST</span>
-                                                    <span className={`font-mono font-bold ${dm ? 'text-slate-200' : 'text-slate-900'}`}>{vendor.gst_number || 'N/A'}</span>
+                                                    <span className={`font - mono font - bold ${dm ? 'text-slate-200' : 'text-slate-900'} `}>{vendor.gst_number || 'N/A'}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-xs">
                                                     <span className="text-slate-400 font-bold uppercase tracking-normal text-[9px]">PAN</span>
-                                                    <span className={`font-mono font-bold ${dm ? 'text-slate-200' : 'text-slate-900'}`}>{vendor.pan_number || 'N/A'}</span>
+                                                    <span className={`font - mono font - bold ${dm ? 'text-slate-200' : 'text-slate-900'} `}>{vendor.pan_number || 'N/A'}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -206,9 +217,9 @@ const VendorDetails = () => {
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-normal mb-1.5 flex items-center gap-2">
                                             <CreditCard size={12} className="text-blue-500" /> Settlement Info
                                         </label>
-                                        <div className={`p-4 rounded-xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
-                                            <p className={`text-[10px] font-semibold uppercase tracking-normal mb-1 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Beneficiary & Holder</p>
-                                            <p className={`text-sm font-bold uppercase tracking-normal mb-1 ${dm ? 'text-white' : 'text-slate-900'}`}>{vendor.bank_holder_name || 'N/A'}</p>
+                                        <div className={`p - 4 rounded - xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'} `}>
+                                            <p className={`text - [10px] font - semibold uppercase tracking - normal mb - 1 ${dm ? 'text-slate-500' : 'text-slate-400'} `}>Beneficiary & Holder</p>
+                                            <p className={`text - sm font - bold uppercase tracking - normal mb - 1 ${dm ? 'text-white' : 'text-slate-900'} `}>{vendor.bank_holder_name || 'N/A'}</p>
                                             <p className="text-[10px] text-slate-500 font-medium">PAN Name: {vendor.pan_name || 'N/A'}</p>
                                         </div>
                                     </div>
@@ -217,9 +228,9 @@ const VendorDetails = () => {
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-normal mb-1.5 flex items-center gap-2">
                                             <Banknote size={12} className="text-amber-500" /> Banking Credentials
                                         </label>
-                                        <div className={`p-4 rounded-xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
-                                            <p className={`text-[10px] font-semibold uppercase tracking-normal mb-1 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Account / IFSC</p>
-                                            <p className={`text-sm font-mono font-bold tracking-normal uppercase whitespace-nowrap mb-1 ${dm ? 'text-white' : 'text-slate-900'}`}>{vendor.bank_account_number || 'N/A'}</p>
+                                        <div className={`p - 4 rounded - xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'} `}>
+                                            <p className={`text - [10px] font - semibold uppercase tracking - normal mb - 1 ${dm ? 'text-slate-500' : 'text-slate-400'} `}>Account / IFSC</p>
+                                            <p className={`text - sm font - mono font - bold tracking - normal uppercase whitespace - nowrap mb - 1 ${dm ? 'text-white' : 'text-slate-900'} `}>{vendor.bank_account_number || 'N/A'}</p>
                                             <p className="text-[10px] text-slate-400 font-semibold tracking-normal uppercase">IFSC: {vendor.bank_ifsc_code || 'N/A'}</p>
                                         </div>
                                     </div>
@@ -228,16 +239,16 @@ const VendorDetails = () => {
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-normal mb-1.5 flex items-center gap-2">
                                             <MapPin size={12} className="text-rose-500" /> Operations Hub
                                         </label>
-                                        <div className={`p-4 rounded-xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
-                                            <p className={`text-[10px] font-semibold uppercase tracking-normal mb-1 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Physical Address</p>
-                                            <p className={`text-xs font-bold leading-relaxed line-clamp-2 ${dm ? 'text-slate-200' : 'text-slate-900'}`}>{vendor.address || 'Address not listed'}</p>
+                                        <div className={`p - 4 rounded - xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'} `}>
+                                            <p className={`text - [10px] font - semibold uppercase tracking - normal mb - 1 ${dm ? 'text-slate-500' : 'text-slate-400'} `}>Physical Address</p>
+                                            <p className={`text - xs font - bold leading - relaxed line - clamp - 2 ${dm ? 'text-slate-200' : 'text-slate-900'} `}>{vendor.address || 'Address not listed'}</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 py-8 border-t mb-8 ${dm ? 'border-slate-700/50 text-slate-200' : 'border-slate-100 text-slate-900'}`}>
-                                    <div className={`flex items-center gap-5 p-4 rounded-2xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
-                                        <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-blue-500 overflow-hidden ${dm ? 'bg-slate-700' : 'bg-white shadow-sm'}`}>
+                                <div className={`grid grid - cols - 1 md: grid - cols - 2 gap - 8 py - 8 border - t mb - 8 ${dm ? 'border-slate-700/50 text-slate-200' : 'border-slate-100 text-slate-900'} `}>
+                                    <div className={`flex items - center gap - 5 p - 4 rounded - 2xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'} `}>
+                                        <div className={`w - 14 h - 14 rounded - xl flex items - center justify - center text - blue - 500 overflow - hidden ${dm ? 'bg-slate-700' : 'bg-white shadow-sm'} `}>
                                             {vendor.user_profile_image ? (
                                                 <img src={vendor.user_profile_image} className="w-full h-full object-cover" alt="Profile" />
                                             ) : (
@@ -245,15 +256,15 @@ const VendorDetails = () => {
                                             )}
                                         </div>
                                         <div>
-                                            <p className={`text-sm font-semibold uppercase tracking-normal ${dm ? 'text-white' : 'text-slate-900'}`}>{vendor.user_username || 'User Profile'}</p>
+                                            <p className={`text - sm font - semibold uppercase tracking - normal ${dm ? 'text-white' : 'text-slate-900'} `}>{vendor.user_username || 'User Profile'}</p>
                                             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-normal">{vendor.user_email || 'Identity'}</p>
                                         </div>
                                         {vendor.user_profile_image && (
                                             <button onClick={() => window.open(vendor.user_profile_image.startsWith('http') ? vendor.user_profile_image : `http://localhost:8000${vendor.user_profile_image}`, '_blank')} className={`ml-auto px-4 py-2 rounded-lg text-xs font-semibold text-blue-500 uppercase tracking-normal transition-colors border ${dm ? 'bg-slate-700 border-slate-600 hover:bg-slate-600' : 'bg-white border-slate-200 hover:bg-blue-50'}`}>
                                                 View
-                                            </button>
+                                            </button >
                                         )}
-                                    </div>
+                                    </div >
                                     <div className={`flex items-center gap-5 p-4 rounded-2xl border ${dm ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-50 border-slate-100'}`}>
                                         <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-blue-500 ${dm ? 'bg-slate-700' : 'bg-white shadow-sm'}`}>
                                             <FileText className="w-7 h-7" />
@@ -310,49 +321,51 @@ const VendorDetails = () => {
                                             </button>
                                         )}
                                     </div>
-                                </div>
+                                </div >
 
                                 {/* Action Buttons */}
-                                {vendor.approval_status === 'pending' ? (
-                                    <div className="flex gap-3">
+                                {
+                                    vendor.approval_status === 'pending' ? (
+                                        <div className="flex gap-3">
+                                            <button
+                                                onClick={() => updateVendorStatusLocal(vendor.id, 'Approved')}
+                                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm transition-all duration-200 border bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-100"
+                                            >
+                                                <CheckCircle2 className="w-4 h-4" />
+                                                Approve Vendor
+                                            </button>
+                                            <button
+                                                onClick={() => updateVendorStatusLocal(vendor.id, 'Blocked')}
+                                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm transition-all duration-200 border bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-100"
+                                            >
+                                                <XCircle className="w-4 h-4" />
+                                                Reject Vendor
+                                            </button>
+                                        </div>
+                                    ) : (
                                         <button
-                                            onClick={() => updateVendorStatusLocal(vendor.id, 'Approved')}
-                                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm transition-all duration-200 border bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-100"
+                                            onClick={handleStatusToggle}
+                                            className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm transition-all duration-200 border ${vendor.approval_status === 'approved' && !vendor.is_blocked
+                                                ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-100'
+                                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-100'
+                                                }`}
                                         >
-                                            <CheckCircle2 className="w-4 h-4" />
-                                            Approve Vendor
+                                            {vendor.approval_status === 'approved' && !vendor.is_blocked ? (
+                                                <>
+                                                    <Lock className="w-4 h-4" />
+                                                    Block Vendor
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Unlock className="w-4 h-4" />
+                                                    Unblock Vendor
+                                                </>
+                                            )}
                                         </button>
-                                        <button
-                                            onClick={() => updateVendorStatusLocal(vendor.id, 'Blocked')}
-                                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm transition-all duration-200 border bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-100"
-                                        >
-                                            <XCircle className="w-4 h-4" />
-                                            Reject Vendor
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={handleStatusToggle}
-                                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm transition-all duration-200 border ${vendor.approval_status === 'approved' && !vendor.is_blocked
-                                            ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-100'
-                                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-emerald-100'
-                                            }`}
-                                    >
-                                        {vendor.approval_status === 'approved' && !vendor.is_blocked ? (
-                                            <>
-                                                <Lock className="w-4 h-4" />
-                                                Block Vendor
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Unlock className="w-4 h-4" />
-                                                Unblock Vendor
-                                            </>
-                                        )}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                                    )
+                                }
+                            </div >
+                        </div >
 
                         <div className={`rounded-xl border overflow-hidden transition-colors ${dm ? 'bg-[#1e293b] border-slate-700/50' : 'bg-white border-slate-200 shadow-sm'}`}>
                             <div className={`px-4 md:px-8 py-4 border-b flex items-center justify-between ${dm ? 'border-slate-700/50 bg-[#1e293b]' : 'border-slate-100 bg-white'}`}>
@@ -465,9 +478,9 @@ const VendorDetails = () => {
                                 </div>
                             </div>
                         )} */}
-                    </div>
-                </main>
-            </div>
+                    </div >
+                </main >
+            </div >
 
             {/* Product Detail Modal */}
             < AnimatePresence >
@@ -533,7 +546,7 @@ const VendorDetails = () => {
                                 <div className="space-y-6 flex-1 overflow-y-auto pr-2 scrollbar-hide">
                                     <div>
                                         <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-normal mb-1.5">Product Name</p>
-                                        <p className={`text-lg font-bold leading-tight uppercase ${dm ? 'text-white' : 'text-slate-900'}`}>{selectedProduct.name}</p>
+                                        <p className={`text-sm sm:text-base lg:text-lg font-bold leading-tight uppercase ${dm ? 'text-white' : 'text-slate-900'}`}>{selectedProduct.name}</p>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4">
@@ -582,8 +595,8 @@ const VendorDetails = () => {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
-        </div>
+            </AnimatePresence >
+        </div >
     );
 };
 

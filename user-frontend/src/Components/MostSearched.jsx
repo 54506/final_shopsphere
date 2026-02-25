@@ -87,13 +87,13 @@ const MostSearched = () => {
     if (products.length === 0) return null;
 
     return (
-        <section className="max-w-[1600px] mx-auto px-6 md:px-12 py-8">
-            <div className="bg-gradient-to-br from-[#f5f3ff] via-[#fdf2ff] to-[#f5f3ff] rounded-[40px] p-6 md:p-10 shadow-xl border border-purple-100/50 relative overflow-hidden">
+        <section className="max-w-[1600px] mx-auto px-3 sm:px-6 md:px-12 py-4 sm:py-8">
+            <div className="bg-gradient-to-br from-[#f5f3ff] via-[#fdf2ff] to-[#f5f3ff] rounded-[24px] sm:rounded-[32px] md:rounded-[40px] p-4 sm:p-6 md:p-10 shadow-xl border border-purple-100/50 relative overflow-hidden">
                 {/* Decorative elements */}
                 <div className="absolute top-0 right-0 w-48 h-48 bg-purple-400/10 rounded-full blur-[60px] -mr-24 -mt-24" />
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-pink-400/10 rounded-full blur-[60px] -ml-24 -mb-24" />
 
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-5 sm:mb-8">
                     <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
                             <Flame size={14} className="text-purple-500 fill-purple-500" />
@@ -101,7 +101,7 @@ const MostSearched = () => {
                                 {Object.keys(JSON.parse(localStorage.getItem('recentSearchFreq') || "{}")).length > 0 ? "For You" : "Trending Now"}
                             </p>
                         </div>
-                        <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
                             {Object.keys(JSON.parse(localStorage.getItem('recentSearchFreq') || "{}")).length > 0 ? "Related to Your Searches" : "Most Searched Products"}
                         </h2>
                     </div>
@@ -109,7 +109,7 @@ const MostSearched = () => {
 
                 <div
                     ref={scrollRef}
-                    className="relative z-10 flex gap-4 overflow-x-auto pb-6 scrollbar-hide snap-x"
+                    className="relative z-10 flex gap-3 sm:gap-4 overflow-x-auto pb-4 sm:pb-6 scrollbar-hide snap-x"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
                     {products.map((item) => (
@@ -117,9 +117,9 @@ const MostSearched = () => {
                             key={item.id}
                             whileHover={{ y: -6 }}
                             onClick={() => handleProductClick(item.id)}
-                            className="flex-shrink-0 w-[220px] md:w-[260px] bg-white rounded-[28px] overflow-hidden shadow-lg shadow-purple-900/5 group border border-white hover:border-purple-200 transition-all duration-300 cursor-pointer flex flex-col snap-start"
+                            className="flex-shrink-0 w-[170px] sm:w-[220px] md:w-[260px] bg-white rounded-[20px] sm:rounded-[28px] overflow-hidden shadow-lg shadow-purple-900/5 group border border-white hover:border-purple-200 transition-all duration-300 cursor-pointer flex flex-col snap-start"
                         >
-                            <div className="relative h-48 bg-[#fafaff] flex items-center justify-center p-4 overflow-hidden">
+                            <div className="relative h-36 sm:h-48 bg-[#fafaff] flex items-center justify-center p-3 sm:p-4 overflow-hidden">
                                 <img
                                     src={item.image}
                                     alt={item.title}
@@ -132,7 +132,7 @@ const MostSearched = () => {
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-purple-500/0 via-transparent to-transparent group-hover:from-purple-500/5 transition-colors duration-500" />
                             </div>
-                            <div className="p-5 space-y-1.5 flex-grow flex flex-col">
+                            <div className="p-3 sm:p-5 space-y-1 sm:space-y-1.5 flex-grow flex flex-col">
                                 <p className="text-purple-500 font-bold text-[9px] uppercase tracking-tight">{item.vendor}</p>
                                 <h3 className="text-slate-800 font-bold text-xs tracking-tight leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 h-8">
                                     {item.title}

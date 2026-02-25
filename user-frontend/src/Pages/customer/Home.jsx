@@ -281,7 +281,7 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff]">
 
       {/* ── HERO CAROUSEL ─────────────────────────────────────────────────────── */}
-      <section className="relative w-full h-[400px] md:h-[550px] overflow-hidden">
+      <section className="relative w-full h-[280px] sm:h-[350px] md:h-[450px] lg:h-[550px] overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentBanner}
@@ -293,21 +293,21 @@ const Home = () => {
           >
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent z-10" />
             <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 z-20 flex flex-col justify-center px-6 md:px-24 lg:px-32">
+            <div className="absolute inset-0 z-20 flex flex-col justify-center px-4 sm:px-8 md:px-16 lg:px-32">
               <motion.div
                 initial={{ x: -50, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
                 className="max-w-3xl"
               >
-                <p className="text-orange-400 font-black tracking-[0.3em] uppercase text-xs mb-4">{banner.subtitle}</p>
-                <h1 className="text-4xl md:text-6xl font-black text-white mb-6 leading-tight">{banner.title}</h1>
-                <p className="text-gray-300 text-base md:text-lg mb-8 max-w-xl leading-relaxed">{banner.description}</p>
+                <p className="text-orange-400 font-black tracking-[0.2em] sm:tracking-[0.3em] uppercase text-[10px] sm:text-xs mb-2 sm:mb-4">{banner.subtitle}</p>
+                <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white mb-3 sm:mb-6 leading-tight">{banner.title}</h1>
+                <p className="text-gray-300 text-sm sm:text-base md:text-lg mb-4 sm:mb-8 max-w-xl leading-relaxed hidden sm:block">{banner.description}</p>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => document.getElementById("products-section")?.scrollIntoView({ behavior: "smooth" })}
-                  className={`group w-fit px-10 py-4 bg-gradient-to-r ${banner.color} text-white font-black rounded-2xl flex items-center gap-3 shadow-xl transition-all duration-300`}
+                  className={`group w-fit px-6 sm:px-10 py-3 sm:py-4 bg-gradient-to-r ${banner.color} text-white font-black text-sm sm:text-base rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 shadow-xl transition-all duration-300`}
                 >
                   {banner.cta} <ArrowRight size={20} />
                 </motion.button>
@@ -317,7 +317,7 @@ const Home = () => {
         </AnimatePresence>
 
         {/* Banner progress dots */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3 p-3 bg-black/20 backdrop-blur-xl rounded-full border border-white/10">
+        <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2 sm:gap-3 p-2 sm:p-3 bg-black/20 backdrop-blur-xl rounded-full border border-white/10">
           {BANNERS.map((_, idx) => (
             <button
               key={idx}
@@ -344,22 +344,22 @@ const Home = () => {
       <MostSearched />
 
       {/* ── PRODUCTS SECTION ──────────────────────────────────────────────────── */}
-      <section id="products-section" className="max-w-[1600px] mx-auto px-6 md:px-12 py-16">
+      <section id="products-section" className="max-w-[1600px] mx-auto px-3 sm:px-6 md:px-12 py-8 sm:py-12 md:py-16">
 
         {/* Header row */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4 mb-6 sm:mb-10">
           <div className="space-y-1">
-            <p className="text-orange-400 font-black tracking-widest text-xs uppercase">Curated Just for You</p>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">FEATURED PRODUCTS</h2>
-            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">
+            <p className="text-orange-400 font-black tracking-widest text-[10px] sm:text-xs uppercase">Curated Just for You</p>
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">FEATURED PRODUCTS</h2>
+            <p className="text-gray-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
               {filteredProducts.length} item{filteredProducts.length !== 1 ? "s" : ""} found
             </p>
           </div>
 
           {/* Controls row */}
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full md:w-auto">
             {/* Search bar */}
-            <div className="relative group">
+            <div className="relative group flex-1 md:flex-none">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-400 transition-colors" size={16} />
               <input
                 type="text"
@@ -377,7 +377,7 @@ const Home = () => {
                     navigate('/home', { replace: true });
                   }
                 }}
-                className="pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-400/5 transition-all w-64"
+                className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-400/5 transition-all md:w-64"
               />
             </div>
 
@@ -444,7 +444,7 @@ const Home = () => {
         )}
 
         {/* Product grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
           {currentProducts.map((item) => (
             <ProductCard
               key={item.id}
@@ -477,12 +477,12 @@ const Home = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex justify-center mt-20 gap-3 flex-wrap">
+          <div className="flex justify-center mt-10 sm:mt-20 gap-2 sm:gap-3 flex-wrap px-2">
             {Array.from({ length: totalPages }).map((_, i) => (
               <button
                 key={i}
                 onClick={() => paginate(i + 1)}
-                className={`w-12 h-12 rounded-xl font-black text-sm transition-all duration-500 ${currentPage === i + 1
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl font-black text-xs sm:text-sm transition-all duration-500 min-w-[44px] min-h-[44px] ${currentPage === i + 1
                   ? "bg-gradient-to-r from-orange-400 to-purple-500 text-white shadow-xl scale-110"
                   : "bg-white text-gray-400 border border-gray-100 hover:border-orange-200 hover:text-orange-400"
                   }`}

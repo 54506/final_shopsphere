@@ -141,18 +141,53 @@ class FinanceService:
     @transaction.atomic
     def settle_order_financials(order):
         """
-        Mark all REVENUE ledger entries for this order as settled.
+        Mark REVENUE ledger entries for this order with a 3-day settlement window.
         Executed when an order is successfully delivered.
+        Funds are NOT released immediately to vendor wallet.
         """
+        from datetime import timedelta
+        # Funds stay uncleared for 3 days to allow for returns
+        settlement_date = timezone.now() + timedelta(days=3)
+        
         updated_count = LedgerEntry.objects.filter(
             order=order,
-            entry_type='REVENUE',
-            is_settled=False
+            entry_type='REVENUE'
         ).update(
-            is_settled=True,
-            settlement_date=timezone.now()
+            is_settled=False,  # Force false to ensure 3-day hold
+            settlement_date=settlement_date
         )
         return updated_count
+
+    @staticmethod
+    @transaction.atomic
+    def release_expired_funds():
+        """
+        Background task: Find all ledger entries where settlement_date has passed
+        and no return request exists, then mark them as settled (releasing funds to vendor).
+        """
+        from user.models import OrderReturn
+        
+        # 1. Identify entries that reached settlement date
+        pending_entries = LedgerEntry.objects.filter(
+            is_settled=False,
+            settlement_date__lte=timezone.now(),
+            entry_type='REVENUE'
+        )
+
+        released_count = 0
+        for entry in pending_entries:
+            # Check if there's an active return request for this order
+            if entry.order:
+                has_active_return = OrderReturn.objects.filter(
+                    order=entry.order
+                ).exclude(status='rejected').exists()
+                
+                if not has_active_return:
+                    entry.is_settled = True
+                    entry.save(update_fields=['is_settled'])
+                    released_count += 1
+        
+        return released_count
 
     @staticmethod
     @transaction.atomic
@@ -244,40 +279,80 @@ class FinanceService:
 
     @staticmethod
     @transaction.atomic
-    def process_refund(order_item, refund_amount, reason="Refund"):
+    def process_refund(order_return, method='original_payment'):
         """
-        Handle full or partial refunds.
-        Requirement: Handle Full refunds, Partial refunds, Order cancellations.
+        Handle full refund for a return request.
+        Credits customer wallet for COD, or logs simulation for online payments.
         """
+        from user.models import Refund, UserWallet, OrderTracking
+        
+        order_item = order_return.order_item
+        refund_amount = order_return.return_amount
+        
+        # 1. Reverse Revenue in Ledger (Debit Vendor)
         # Proportional commission reversal
         full_amount = order_item.subtotal
         comm_total = order_item.commission_amount
         
-        # Commission reversal amount = (refund_amount / full_amount) * comm_total
         comm_reversal = (Decimal(str(refund_amount)) / full_amount) * comm_total
         comm_reversal = comm_reversal.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-        # 1. Reverse Revenue (Debit Vendor)
+        # Debit Vendor Net Revenue
         FinanceService._create_ledger_entry(
             vendor=order_item.vendor,
             amount=-Decimal(str(refund_amount)),
             entry_type='REFUND',
-            description=f"Refund Reversal for {order_item.order.order_number}: {reason}",
+            description=f"Refund Reversal for {order_item.order.order_number}: Return ID {order_return.id}",
             order=order_item.order,
             order_item=order_item,
-            reference_id=f"REFUND_REV_{uuid.uuid4().hex[:8]}"
+            reference_id=f"REFUND_REV_{order_return.id}",
+            is_settled=True # Refunds hit immediately
         )
 
-        # 2. Reverse Commission (Credit Vendor)
+        # Reverse Commission (Credit Vendor)
         FinanceService._create_ledger_entry(
             vendor=order_item.vendor,
             amount=comm_reversal,
             entry_type='REFUND',
-            description=f"Commission Reversal for {order_item.order.order_number}: {reason}",
+            description=f"Commission Reversal for {order_item.order.order_number}",
             order=order_item.order,
             order_item=order_item,
-            reference_id=f"REFUND_COM_{uuid.uuid4().hex[:8]}"
+            reference_id=f"REFUND_COM_{order_return.id}",
+            is_settled=True
         )
+
+        # 2. Create Refund Record
+        refund = Refund.objects.create(
+            order_return=order_return,
+            user=order_return.user,
+            refund_amount=refund_amount,
+            refund_method=method,
+            status='completed',
+            transaction_id=f"REF_{uuid.uuid4().hex[:12].upper()}",
+            completed_at=timezone.now()
+        )
+
+        # 3. Credit customer wallet (DEMO: Always refund to wallet for immediate visibility)
+        wallet, _ = UserWallet.objects.get_or_create(user=order_return.user)
+        wallet.add_balance(refund_amount, f"Refund for Order {order_return.order.order_number}")
+        
+        refund.refund_method = 'wallet'
+        refund.status = 'completed'
+        refund.save()
+
+        # 4. Update Return Status
+        order_return.refund_status = 'processed'
+        order_return.status = 'completed'
+        order_return.processed_at = timezone.now()
+        order_return.save()
+
+        OrderTracking.objects.create(
+            order=order_return.order,
+            status='Refund Processed',
+            notes=f"Refund of ₹{refund_amount} processed via {refund.get_refund_method_display()}."
+        )
+
+        return refund
 
     @staticmethod
     def get_vendor_earnings_summary(vendor):

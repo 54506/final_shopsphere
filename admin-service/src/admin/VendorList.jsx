@@ -17,7 +17,8 @@ import {
     Clock,
     Store,
     Activity,
-    Users
+    Users,
+    Menu
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 
@@ -26,7 +27,8 @@ const VendorList = () => {
     const location = useLocation();
     const { isDarkMode } = useTheme();
     const { vendors, updateVendorStatus } = useVendors();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
+
 
     const initialFilter = location.state?.filter || 'All Vendors';
     const [filterStatus, setFilterStatus] = useState(initialFilter);
@@ -56,19 +58,20 @@ const VendorList = () => {
             />
 
             <main className="flex-1 flex flex-col min-w-0">
-                <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
+                <header className={`border-b px-4 sm:px-6 lg:px-8 h-14 sm:h-16 lg:h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
                     <div className="flex items-center gap-4">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-blue-600 shadow-sm'}`}>
-                            {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+                            <span className="md:hidden"><Menu className="w-5 h-5" /></span>
+                            <span className="hidden md:block">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}</span>
                         </button>
                         <div>
-                            <h1 className={`text-lg font-bold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Merchant Index</h1>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-normal">Marketplace Partner Registry</p>
+                            <h1 className={`text-sm sm:text-base lg:text-lg font-bold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Merchant Index</h1>
+                            <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-normal hidden sm:block">Marketplace Partner Registry</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-6">
                         <NotificationBell />
-                        <div className={`hidden lg:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                        <div className={`hidden xl:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                             <Activity className="w-3.5 h-3.5" /> Core Ops Synced
                         </div>
                     </div>
@@ -101,7 +104,7 @@ const VendorList = () => {
                         </div>
 
                         {/* Search and Filters */}
-                        <div className={`p-4 rounded-[2rem] border transition-all duration-300 flex flex-col md:flex-row gap-4 items-center ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
+                        <div className={`p-3 sm:p-4 rounded-2xl sm:rounded-[2rem] border transition-all duration-300 flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
                             <div className="flex-1 w-full relative">
                                 <SearchBar
                                     placeholder="Trace merchant by store name or principal..."

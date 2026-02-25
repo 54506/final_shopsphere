@@ -13,7 +13,8 @@ import {
     Activity,
     Box,
     X,
-    MoreVertical
+    MoreVertical,
+    Menu
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,7 +42,7 @@ const ProductManagement = () => {
         updateProductStatus,
     } = useProducts();
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
     const [selectedProduct, setSelectedProduct] = useState(null);
 
     const [searchInput, setSearchInput] = useState(location.state?.searchTerm || '');
@@ -52,6 +53,15 @@ const ProductManagement = () => {
         if (location.state?.searchTerm) {
             doSearch(location.state.searchTerm);
         }
+    }, []);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) setIsSidebarOpen(false);
+            else if (window.innerWidth >= 1024) setIsSidebarOpen(true);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     const handleSearchChange = (e) => {
@@ -85,38 +95,39 @@ const ProductManagement = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Products" onLogout={logout} />
+            <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activePage="Products" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0">
-                <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
-                    <div className="flex items-center gap-4">
+                <header className={`border-b px-4 sm:px-6 lg:px-8 h-14 sm:h-16 lg:h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
+                    <div className="flex items-center gap-2 sm:gap-4">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-blue-600 shadow-sm'}`}>
-                            {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+                            <span className="md:hidden"><Menu className="w-5 h-5" /></span>
+                            <span className="hidden md:block">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}</span>
                         </button>
                         <div>
-                            <h1 className={`text-lg font-bold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Market Registry</h1>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-normal">Global Inventory Control</p>
+                            <h1 className={`text-sm sm:text-base lg:text-lg font-bold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Market Registry</h1>
+                            <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-normal hidden sm:block">Global Inventory Control</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
                         <NotificationBell />
-                        <div className={`hidden lg:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                        <div className={`hidden xl:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                             <Box className="w-3.5 h-3.5" /> Sector 7-G Node
                         </div>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-transparent">
-                    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 bg-transparent">
+                    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8 pb-8 sm:pb-12">
                         {/* Summary Bar */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                             {[
                                 { label: 'Active Items', value: totalCount, icon: Package, color: 'blue' },
                                 { label: 'Market Depth', value: totalPages, icon: Activity, color: 'emerald' },
                                 { label: 'Node Status', value: 'Synced', icon: Box, color: 'emerald' },
                                 { label: 'Auth Level', value: 'Root', icon: MoreVertical, color: 'amber' }
                             ].map((stat, i) => (
-                                <div key={i} className={`p-6 rounded-[2rem] border transition-all duration-300 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                                <div key={i} className={`p-4 sm:p-5 lg:p-6 rounded-2xl sm:rounded-[2rem] border transition-all duration-300 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
                                     <div className="flex items-center gap-4">
                                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.color === 'blue' ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') :
                                             stat.color === 'emerald' ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600') :
@@ -135,7 +146,7 @@ const ProductManagement = () => {
                         </div>
 
                         {/* Search & Filter Toolbar */}
-                        <div className={`p-4 rounded-[2rem] border transition-all duration-300 flex flex-col md:flex-row gap-4 items-center ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
+                        <div className={`p-3 sm:p-4 rounded-2xl sm:rounded-[2rem] border transition-all duration-300 flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
                             <div className="relative flex-1 w-full">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                 <input
@@ -163,8 +174,84 @@ const ProductManagement = () => {
                             </div>
                         </div>
 
-                        {/* Table */}
-                        <div className={`rounded-[2.5rem] border shadow-sm overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        {/* Mobile Card View */}
+                        <div className="block lg:hidden space-y-3">
+                            {isLoading ? (
+                                Array(3).fill(0).map((_, i) => (
+                                    <div key={i} className={`animate-pulse p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'}`}>
+                                        <div className={`h-16 rounded-xl w-full ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`} />
+                                    </div>
+                                ))
+                            ) : products.length > 0 ? (
+                                products.map((product) => (
+                                    <div
+                                        key={product.id}
+                                        className={`p-4 rounded-2xl border transition-all ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}
+                                    >
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className={`w-12 h-12 rounded-xl border flex items-center justify-center overflow-hidden shrink-0 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+                                                {product.images?.[0]?.url ? (
+                                                    <img src={product.images[0].url.startsWith('http') ? product.images[0].url : `http://localhost:8000${product.images[0].url}`} alt={product.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <Package className="w-5 h-5 text-slate-300" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className={`text-sm font-bold truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{product.name}</div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-semibold text-blue-500 uppercase">{product.brand}</span>
+                                                    <span className="text-[9px] text-slate-500">ID: {product.id}</span>
+                                                </div>
+                                            </div>
+                                            <span className={`px-2 py-1 rounded-full text-[9px] font-semibold uppercase border shrink-0 ${product.status?.toLowerCase() === 'active'
+                                                ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border-emerald-100')
+                                                : (isDarkMode ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-600 border-rose-100')
+                                                }`}>{product.status}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <span className={`text-base font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{formatCurrency(product.price)}</span>
+                                                <span className="text-xs text-slate-500 ml-2">{product.quantity} units</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={() => setSelectedProduct(product)} className={`p-2 rounded-xl transition-all ${isDarkMode ? 'bg-slate-800 text-blue-400' : 'bg-slate-50 text-blue-600 border border-slate-100 shadow-sm'}`}>
+                                                    <ArrowUpRight className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => handleAction(product.id, product.status?.toLowerCase() === 'active' ? 'inactive' : 'active')} className={`p-2 rounded-xl transition-all border ${product.status?.toLowerCase() === 'active'
+                                                    ? (isDarkMode ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-rose-50 border-rose-100 text-rose-600')
+                                                    : (isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-100 text-emerald-600')
+                                                    }`}>
+                                                    {product.status?.toLowerCase() === 'active' ? <X className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center text-center py-12">
+                                    <Box className="w-12 h-12 text-slate-300 mb-4" />
+                                    <h3 className={`text-base font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Empty Sector</h3>
+                                    <p className="text-sm text-slate-400">No products matched the current search.</p>
+                                </div>
+                            )}
+                            {/* Mobile Pagination */}
+                            <div className="flex items-center justify-between py-2">
+                                <div className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold ${isDarkMode ? 'bg-slate-800 text-blue-400' : 'bg-white text-blue-600 shadow-sm'}`}>
+                                    {currentPage} / {totalPages}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button disabled={currentPage <= 1} onClick={() => goToPage(currentPage - 1)} className={`p-2.5 rounded-xl transition-all border disabled:opacity-20 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-400 shadow-sm'}`}>
+                                        <ChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    <button disabled={currentPage >= totalPages} onClick={() => goToPage(currentPage + 1)} className={`p-2.5 rounded-xl transition-all border disabled:opacity-20 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-400 shadow-sm'}`}>
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Desktop Table */}
+                        <div className={`hidden lg:block rounded-[2.5rem] border shadow-sm overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-200'}`}>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                     <thead className={`border-b transition-colors duration-300 ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
@@ -303,7 +390,7 @@ const ProductManagement = () => {
             {/* Premium Modal */}
             <AnimatePresence>
                 {selectedProduct && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -315,11 +402,11 @@ const ProductManagement = () => {
                             initial={{ scale: 0.9, opacity: 0, y: 40 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 40 }}
-                            className={`relative w-full max-w-4xl rounded-[3rem] overflow-hidden shadow-2xl flex flex-col md:flex-row transition-colors duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
+                            className={`relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-[3rem] overflow-hidden shadow-2xl flex flex-col md:flex-row transition-colors duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
                         >
                             {/* Left Side: Images */}
-                            <div className={`w-full md:w-1/2 p-8 flex flex-col border-b md:border-b-0 md:border-r ${isDarkMode ? 'bg-slate-950/30 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
-                                <div className={`flex-1 min-h-[400px] mb-6 relative rounded-[2.5rem] overflow-hidden border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-inner'}`}>
+                            <div className={`w-full md:w-1/2 p-4 sm:p-6 md:p-8 flex flex-col border-b md:border-b-0 md:border-r ${isDarkMode ? 'bg-slate-950/30 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
+                                <div className={`flex-1 min-h-[200px] sm:min-h-[300px] md:min-h-[400px] mb-4 sm:mb-6 relative rounded-2xl sm:rounded-[2.5rem] overflow-hidden border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-inner'}`}>
                                     <img
                                         src={selectedProduct.activeImage ? (selectedProduct.activeImage.startsWith('http') ? selectedProduct.activeImage : `http://localhost:8000${selectedProduct.activeImage}`) : (selectedProduct.images?.[0]?.url ? (selectedProduct.images[0].url.startsWith('http') ? selectedProduct.images[0].url : `http://localhost:8000${selectedProduct.images[0].url}`) : '')}
                                         alt={selectedProduct.name}
@@ -348,7 +435,7 @@ const ProductManagement = () => {
                             </div>
 
                             {/* Right Side: Data */}
-                            <div className="w-full md:w-1/2 p-12 flex flex-col justify-between">
+                            <div className="w-full md:w-1/2 p-6 sm:p-8 md:p-12 flex flex-col justify-between">
                                 <div className="space-y-8">
                                     <div className="flex items-center justify-between">
                                         <div className={`px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-normal border ${selectedProduct.status?.toLowerCase() === 'active'

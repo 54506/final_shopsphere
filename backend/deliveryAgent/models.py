@@ -182,13 +182,20 @@ class DeliveryAssignment(models.Model):
         ('arrived', 'Arrived at Location'),
         ('attempting_delivery', 'Attempting Delivery'),
         ('delivered', 'Delivered'),
-        ('failed', 'Delivery Failed'),
+        ('failed', 'Failed'),
         ('cancelled', 'Cancelled'),
+    ]
+
+    ASSIGNMENT_TYPE_CHOICES = [
+        ('delivery', 'Standard Delivery'),
+        ('return', 'Return Pickup'),
     ]
     
     # Assignment Details
     agent = models.ForeignKey(DeliveryAgentProfile, on_delete=models.PROTECT, related_name='delivery_assignments')
-    order = models.OneToOneField('user.Order', on_delete=models.PROTECT, related_name='delivery_assignment')
+    order = models.ForeignKey('user.Order', on_delete=models.PROTECT, related_name='delivery_assignments')
+    assignment_type = models.CharField(max_length=10, choices=ASSIGNMENT_TYPE_CHOICES, default='delivery')
+    return_request = models.ForeignKey('user.OrderReturn', on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_assignments')
     
     # Status Tracking
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='assigned')
@@ -261,21 +268,26 @@ class DeliveryAssignment(models.Model):
         stats.total_deliveries_assigned += 1
         stats.save()
 
-        
-        # Update order status to shipping
-        if self.order:
+        if self.assignment_type == 'delivery' and self.order:
             self.order.status = 'shipping'
             self.order.save()
+        elif self.assignment_type == 'return' and self.order:
+            # For returns, we don't change main order status yet, 
+            # or maybe to 'return_in_progress'
+            pass
     
     def start_delivery(self):
-        """Mark delivery as started (picked up from vendor)"""
+        """Mark delivery as started (picked up)"""
         self.status = 'picked_up'
         self.pickup_time = timezone.now()
         self.save()
         
-        # Update order status to shipping
         if self.order:
-            self.order.status = 'shipping'
+            if self.assignment_type == 'delivery':
+                self.order.status = 'shipping'
+            else:
+                # Return picked up from customer
+                self.order.status = 'returned' # Or a more granular status if available
             self.order.save(update_fields=['status'])
     
     def mark_in_transit(self):
@@ -300,60 +312,61 @@ class DeliveryAssignment(models.Model):
         self.save()
     
     def mark_delivered(self):
-        """Mark delivery as completed, credit agent wallet and create commission record"""
-        from user.models import UserWallet, Order
+        """Mark delivery as completed (Finalize standard delivery OR return pickup)"""
+        from user.models import UserWallet, Order, OrderReturn
         from .models import DeliveryCommission, DeliveryDailyStats
         
         self.status = 'delivered'
         self.delivery_time = timezone.now()
         self.completed_at = timezone.now()
         self.save()
-        
-        # 1. Update order status
-        if self.order:
-            self.order.status = 'delivered'
-            self.order.delivered_at = self.delivery_time
-            self.order.save(update_fields=['status', 'delivered_at'])
+
+        if self.assignment_type == 'return':
+            # 1. Finalize all relevant Return Requests for this order
+            OrderReturn.objects.filter(
+                order=self.order, 
+                status='picked_up'
+            ).update(status='received')
             
-            # Create Tracking Records
+            # Create Tracking
             from user.models import OrderTracking
             OrderTracking.objects.create(
                 order=self.order,
-                status='Delivered',
+                status='Return Received at Warehouse',
                 location=self.delivery_city,
-                notes="Order successfully delivered and verified via OTP."
+                notes="Return package(s) received and verified at the hub/warehouse."
             )
+        else:
+            # Standard Delivery Finalization
+            if self.order:
+                self.order.status = 'delivered'
+                self.order.delivered_at = self.delivery_time
+                self.order.save(update_fields=['status', 'delivered_at'])
+                
+                from user.models import OrderTracking
+                OrderTracking.objects.create(
+                    order=self.order,
+                    status='Delivered',
+                    location=self.delivery_city,
+                    notes="Order successfully delivered and verified via OTP."
+                )
             
-            from django.apps import apps
-            DeliveryTracking = apps.get_model('deliveryAgent', 'DeliveryTracking')
-            DeliveryTracking.objects.create(
-                delivery_assignment=self,
-                latitude=0, longitude=0,
-                address=self.delivery_city,
-                status='Delivered',
-                notes="Delivery completed successfully."
-            )
-        
-        # 2. Settle Financials
-        try:
-            from finance.services import FinanceService
-            FinanceService.settle_order_financials(self.order)
-        except Exception as e:
-            print(f"DEBUG: Error settling financials: {str(e)}")
+            # Settle Vendor Ledger (sets 3-day window)
+            try:
+                from finance.services import FinanceService
+                FinanceService.settle_order_financials(self.order)
+            except Exception as e:
+                print(f"DEBUG: Financial settlement error: {str(e)}")
 
-        # 2. Calculate Commission Based on Type (Local vs Out-of-city)
-        # Assuming local is within the same city
+        # 2. Calculate Commission
         is_local = self.delivery_city.lower() == self.agent.city.lower()
         
         distance_bonus = Decimal('0.00')
         if not is_local:
-            # Out-of-city bonus: 20% of base fee
             distance_bonus = self.delivery_fee * Decimal('0.20')
         
-        # Rating bonus could be added later when feedback is received
         total_commission = self.delivery_fee + distance_bonus
 
-        # Create commission record
         commission = DeliveryCommission.objects.create(
             agent=self.agent,
             delivery_assignment=self,
@@ -374,7 +387,6 @@ class DeliveryAssignment(models.Model):
         self.agent.completed_deliveries += 1
         self.agent.total_earnings = Decimal(str(self.agent.total_earnings)) + total_commission
         self.agent.save()
-
 
         # 5. Update daily stats
         stats, created = DeliveryDailyStats.objects.get_or_create(
