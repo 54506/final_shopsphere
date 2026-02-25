@@ -6,17 +6,18 @@ from pathlib import Path
 from datetime import timedelta
 import os
 import dj_database_url
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-r91l8)q8sv%mg9mem%^emum4&*&d-ewt7tt6_=e%1h8vr@nrp=')
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-r91l8)q8sv%mg9mem%^emum4&*&d-ewt7tt6_=e%1h8vr@nrp=')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=lambda v: [s.strip() for s in v.split(',')])
 
 # Application definition
 INSTALLED_APPS = [
@@ -164,7 +165,7 @@ _default_cors = [
 
 # In production, set CORS_ALLOWED_ORIGINS env var as comma-separated URLs
 # e.g. CORS_ALLOWED_ORIGINS=https://shopsphere.vercel.app,https://admin.vercel.app
-_env_cors = os.environ.get('CORS_ALLOWED_ORIGINS', '')
+_env_cors = config('CORS_ALLOWED_ORIGINS', default='')
 _extra_cors = [u.strip() for u in _env_cors.split(',') if u.strip()]
 CORS_ALLOWED_ORIGINS = list(set(_default_cors + _extra_cors))
 
@@ -195,6 +196,6 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'nandhuuppalapati@gmail.com')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'jzfc arto roxz wgwj')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='nandhuuppalapati@gmail.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='jzfc arto roxz wgwj')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
