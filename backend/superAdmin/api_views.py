@@ -32,7 +32,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from finance.models import GlobalCommission, CategoryCommission
 from vendor.models import VendorProfile, Product
-from .models import VendorApprovalLog, ProductApprovalLog, DeliveryAgentApprovalLog
+from .models import VendorApprovalLog, ProductApprovalLog, DeliveryAgentApprovalLog, ContactQuery
 from deliveryAgent.models import DeliveryAgentProfile, DeliveryAssignment
 from deliveryAgent.serializers import DeliveryAssignmentDetailSerializer, DeliveryAssignmentListSerializer
 from .serializers import (
@@ -45,7 +45,8 @@ from .serializers import (
     AdminDeliveryAgentDetailSerializer, AdminDeliveryAgentListSerializer,
     ApproveDeliveryAgentSerializer, RejectDeliveryAgentSerializer,
     BlockDeliveryAgentSerializer, UnblockDeliveryAgentSerializer,
-    AdminOrderListSerializer, AdminOrderDetailSerializer
+    AdminOrderListSerializer, AdminOrderDetailSerializer,
+    ContactQuerySerializer
 )
 from user.models import Order
 
@@ -1392,3 +1393,19 @@ class WhoAmIView(APIView):
             'role': getattr(u, 'role', 'N/A'),
             'is_admin_eligible': u.is_staff or u.is_superuser,
         })
+
+class ContactQueryViewSet(viewsets.ModelViewSet):
+    queryset = ContactQuery.objects.all()
+    serializer_class = ContactQuerySerializer
+    
+    def get_permissions(self):
+        if self.action == 'create':
+            return [] # Allow anyone to submit a contact query
+        return [IsAuthenticated(), IsStaffOrSuperuser()]
+
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        query = self.get_object()
+        query.is_read = True
+        query.save()
+        return Response({'status': 'marked as read'})

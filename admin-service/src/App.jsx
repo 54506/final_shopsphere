@@ -18,6 +18,7 @@ import DeliveryReview from './admin/DeliveryReview';
 import OrderManagement from './admin/OrderManagement';
 import OrderDetail from './admin/OrderDetail';
 import DeletionRequests from './admin/DeletionRequests';
+import Queries from './admin/Queries';
 
 import { NotificationProvider } from './context/NotificationContext';
 import { UserProvider } from './context/UserContext';
@@ -160,6 +161,14 @@ function App() {
                   element={
                     <ProtectedAdminRoute>
                       <CommissionSettings />
+                    </ProtectedAdminRoute>
+                  }
+                />
+                <Route
+                  path="/queries"
+                  element={
+                    <ProtectedAdminRoute>
+                      <Queries />
                     </ProtectedAdminRoute>
                   }
                 />
