@@ -11,6 +11,7 @@ import {
     XCircle,
     Mail,
     FileText,
+    Menu,
     PanelLeftClose,
     PanelLeftOpen,
     ShieldAlert,
@@ -26,7 +27,7 @@ export default function DeletionRequests() {
     const { isDarkMode } = useTheme();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
     const fetchRequests = async () => {
@@ -46,6 +47,15 @@ export default function DeletionRequests() {
 
     useEffect(() => {
         fetchRequests();
+    }, []);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) setIsSidebarOpen(false);
+            else if (window.innerWidth >= 1024) setIsSidebarOpen(true);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     const handleAction = async (type, id, action) => {
@@ -79,31 +89,32 @@ export default function DeletionRequests() {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Requests" onLogout={logout} />
+            <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activePage="Requests" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
-                <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
+                <header className={`border-b px-4 sm:px-6 lg:px-8 h-14 sm:h-16 lg:h-20 flex items-center justify-between sticky top-0 z-20 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
                     <div className="flex items-center gap-4">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-blue-600 shadow-sm'}`}>
-                            {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+                            <span className="md:hidden"><Menu className="w-5 h-5" /></span>
+                            <span className="hidden md:block">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}</span>
                         </button>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h1 className={`text-lg font-semibold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Account Deletion Requests</h1>
+                                <h1 className={`text-sm sm:text-base lg:text-lg font-semibold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Account Deletion Requests</h1>
                                 <span className={`text-[8px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-normal ${isDarkMode ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>Sensitive</span>
                             </div>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-normal">Approve or reject account deletion requests from vendors and delivery agents</p>
+                            <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-normal hidden sm:block">Approve or reject account deletion requests from vendors and delivery agents</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
                         <NotificationBell />
-                        <div className={`hidden lg:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                        <div className={`hidden xl:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                             <ShieldAlert className="w-3.5 h-3.5" /> High Priority
                         </div>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
                     <div className="max-w-7xl mx-auto">
                         {requests.length === 0 ? (
                             <motion.div

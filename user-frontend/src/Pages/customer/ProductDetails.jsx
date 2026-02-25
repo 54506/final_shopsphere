@@ -212,11 +212,11 @@ const ProductDetails = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff] pt-24 pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff] pt-20 sm:pt-24 pb-8 sm:pb-12 px-3 sm:px-4 md:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
                 <button
                     onClick={() => navigate(-1)}
-                    className="mb-6 flex items-center gap-2 text-gray-600 hover:text-orange-400 font-bold transition-all group"
+                    className="mb-4 sm:mb-6 flex items-center gap-2 text-gray-600 hover:text-orange-400 font-bold transition-all group text-sm sm:text-base"
                 >
                     <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md border border-gray-100 transition-all">
                         <FaChevronLeft size={16} />
@@ -224,10 +224,10 @@ const ProductDetails = () => {
                     Back to products
                 </button>
 
-                <div className="bg-white rounded-[40px] shadow-2xl shadow-gray-200/50 overflow-hidden border border-gray-100 flex flex-col lg:flex-row">
+                <div className="bg-white rounded-[24px] sm:rounded-[32px] lg:rounded-[40px] shadow-2xl shadow-gray-200/50 overflow-hidden border border-gray-100 flex flex-col lg:flex-row">
                     {/* LEFT SECTION: IMAGE GALLERY */}
-                    <div className="w-full lg:w-[55%] p-6 lg:p-12 flex flex-col-reverse lg:flex-row gap-6">
-                        <div className="flex flex-row lg:flex-col gap-4 overflow-x-auto lg:overflow-visible">
+                    <div className="w-full lg:w-[55%] p-4 sm:p-6 lg:p-12 flex flex-col-reverse lg:flex-row gap-3 sm:gap-6">
+                        <div className="flex flex-row lg:flex-col gap-2 sm:gap-4 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-hide">
                             {product.images.map((img, idx) => (
                                 <button
                                     key={idx}
@@ -235,7 +235,7 @@ const ProductDetails = () => {
                                         setMainImage(img);
                                         setSelectedImgIndex(idx);
                                     }}
-                                    className={`relative flex-shrink-0 w-20 h-20 bg-gray-50 rounded-2xl overflow-hidden border-2 transition-all duration-300 ${selectedImgIndex === idx ? "border-orange-400 scale-105 shadow-lg" : "border-transparent opacity-70 hover:opacity-100"
+                                    className={`relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-gray-50 rounded-xl sm:rounded-2xl overflow-hidden border-2 transition-all duration-300 ${selectedImgIndex === idx ? "border-orange-400 scale-105 shadow-lg" : "border-transparent opacity-70 hover:opacity-100"
                                         }`}
                                 >
                                     <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
@@ -243,7 +243,7 @@ const ProductDetails = () => {
                             ))}
                         </div>
 
-                        <div className="flex-1 relative aspect-square bg-[#FCFBFA] rounded-[32px] overflow-hidden group">
+                        <div className="flex-1 relative aspect-square bg-[#FCFBFA] rounded-[20px] sm:rounded-[28px] lg:rounded-[32px] overflow-hidden group">
                             <AnimatePresence mode="wait">
                                 <motion.img
                                     key={mainImage}
@@ -253,15 +253,15 @@ const ProductDetails = () => {
                                     transition={{ duration: 0.4, ease: "easeOut" }}
                                     src={mainImage}
                                     alt={product.name}
-                                    className="w-full h-full object-contain p-8 group-hover:scale-105 transition-transform duration-700 ease-out"
+                                    className="w-full h-full object-contain p-4 sm:p-6 lg:p-8 group-hover:scale-105 transition-transform duration-700 ease-out"
                                 />
                             </AnimatePresence>
-                            <div className="absolute top-6 left-6 px-4 py-1.5 bg-red-500 text-white text-[10px] font-black uppercase tracking-[2px] rounded-full shadow-lg shadow-red-500/20">
+                            <div className="absolute top-3 sm:top-6 left-3 sm:left-6 px-3 py-1 sm:px-4 sm:py-1.5 bg-red-500 text-white text-[8px] sm:text-[10px] font-black uppercase tracking-[2px] rounded-full shadow-lg shadow-red-500/20">
                                 Best Seller
                             </div>
                             <button
                                 onClick={handleWishlistToggle}
-                                className={`absolute top-6 right-6 w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 ${isInWishlist(product.name) ? "bg-red-500 text-white" : "bg-white text-gray-400 hover:text-red-500"
+                                className={`absolute top-3 sm:top-6 right-3 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 min-w-[44px] min-h-[44px] ${isInWishlist(product.name) ? "bg-red-500 text-white" : "bg-white text-gray-400 hover:text-red-500"
                                     }`}
                             >
                                 <FaHeart size={20} className={isInWishlist(product.name) ? "animate-bounce" : ""} />
@@ -270,21 +270,21 @@ const ProductDetails = () => {
                     </div>
 
                     {/* RIGHT SECTION: INFO */}
-                    <div className="w-full lg:w-[45%] p-8 lg:p-14 lg:border-l border-gray-100 flex flex-col justify-between">
+                    <div className="w-full lg:w-[45%] p-5 sm:p-8 lg:p-14 lg:border-l border-gray-100 flex flex-col justify-between">
                         <div>
-                            <p className="text-orange-400 text-[14px] font-black uppercase tracking-[4px] mb-2">{product.brand}</p>
-                            <h1 className="text-4xl lg:text-5xl font-black text-gray-900 leading-[1.1] mb-6 tracking-tight">
+                            <p className="text-orange-400 text-[11px] sm:text-[14px] font-black uppercase tracking-[3px] sm:tracking-[4px] mb-1 sm:mb-2">{product.brand}</p>
+                            <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 leading-[1.1] mb-4 sm:mb-6 tracking-tight">
                                 {product.name}
                             </h1>
                             <div className="flex items-center gap-4">
                                 <Rating rating={product.average_rating || 0} />
                                 <span className="text-gray-400 font-bold">Based on {product.review_count || 0} reviews</span>
                             </div>
-                            <div className="flex items-end gap-5 mb-8">
-                                <p className="text-5xl font-black text-gray-900 tracking-tighter">
+                            <div className="flex flex-wrap items-end gap-3 sm:gap-5 mb-6 sm:mb-8">
+                                <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tighter">
                                     ₹{product.price.toFixed(2)}
                                 </p>
-                                <p className="text-2xl font-bold text-gray-300 line-through mb-1.5">
+                                <p className="text-lg sm:text-2xl font-bold text-gray-300 line-through mb-0.5 sm:mb-1.5">
                                     ₹{product.oldPrice.toFixed(2)}
                                 </p>
                                 <div className="px-3 py-1 bg-purple-100 text-purple-600 text-[11px] font-black uppercase tracking-[1px] rounded-lg mb-2">
@@ -298,34 +298,34 @@ const ProductDetails = () => {
                                     {product.description}
                                 </p>
                             </div>
-                            <div className="flex items-center gap-6 mb-12">
+                            <div className="flex items-center gap-4 sm:gap-6 mb-8 sm:mb-12">
                                 <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[2px]">Quantity</h4>
                                 <div className="flex items-center bg-gray-50 border border-gray-200 rounded-2xl p-1.5 shadow-inner">
                                     <button
                                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 hover:bg-white hover:text-orange-400 transition-all font-bold"
+                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 hover:bg-white hover:text-orange-400 transition-all font-bold min-w-[44px] min-h-[44px]"
                                     >
                                         <FaMinus size={12} />
                                     </button>
                                     <span className="w-12 text-center text-lg font-black text-gray-900">{quantity}</span>
                                     <button
                                         onClick={() => setQuantity(quantity + 1)}
-                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 hover:bg-white hover:text-orange-400 transition-all font-bold"
+                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 hover:bg-white hover:text-orange-400 transition-all font-bold min-w-[44px] min-h-[44px]"
                                     >
                                         <FaPlus size={12} />
                                     </button>
                                 </div>
                             </div>
-                            <div className="flex flex-col sm:flex-row gap-4 mb-12">
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-12">
                                 <button
                                     onClick={handleAddToCart}
-                                    className="flex-1 py-5 bg-white border-2 border-gray-900 text-gray-900 rounded-[24px] font-black text-lg transition-all hover:bg-gray-50 flex items-center justify-center gap-3 active:scale-95 shadow-sm"
+                                    className="flex-1 py-4 sm:py-5 bg-white border-2 border-gray-900 text-gray-900 rounded-[20px] sm:rounded-[24px] font-black text-base sm:text-lg transition-all hover:bg-gray-50 flex items-center justify-center gap-3 active:scale-95 shadow-sm min-h-[48px]"
                                 >
                                     <FaShoppingCart size={18} /> Add to Cart
                                 </button>
                                 <button
                                     onClick={handleBuyNow}
-                                    className="flex-1 py-5 bg-gradient-to-br from-orange-400 to-purple-500 text-white rounded-[24px] font-black text-lg shadow-xl shadow-orange-400/20 hover:shadow-orange-400/40 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 active:scale-95"
+                                    className="flex-1 py-4 sm:py-5 bg-gradient-to-br from-orange-400 to-purple-500 text-white rounded-[20px] sm:rounded-[24px] font-black text-base sm:text-lg shadow-xl shadow-orange-400/20 hover:shadow-orange-400/40 hover:-translate-y-1 transition-all flex items-center justify-center gap-3 active:scale-95 min-h-[48px]"
                                 >
                                     <FaBolt size={18} /> Buy it Now
                                 </button>
@@ -358,10 +358,10 @@ const ProductDetails = () => {
                 </div>
 
                 {/* REVIEWS SECTION */}
-                <div className="mt-12 bg-white rounded-[40px] shadow-2xl shadow-gray-200/50 overflow-hidden border border-gray-100 p-8 lg:p-14">
+                <div className="mt-8 sm:mt-12 bg-white rounded-[24px] sm:rounded-[32px] lg:rounded-[40px] shadow-2xl shadow-gray-200/50 overflow-hidden border border-gray-100 p-5 sm:p-8 lg:p-14">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
                         <div>
-                            <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Customer Reviews</h2>
+                            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mb-2">Customer Reviews</h2>
                             <div className="flex items-center gap-4">
                                 <Rating rating={product.average_rating || 0} />
                                 <span className="text-gray-400 font-bold">Based on {product.review_count || 0} reviews</span>
@@ -429,7 +429,7 @@ const ProductDetails = () => {
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
                             {relatedProducts.map((item) => (
                                 <ProductCard
                                     key={item.id}

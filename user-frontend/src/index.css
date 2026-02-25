@@ -13,9 +13,30 @@
     }
 }
 
-/* Smooth scroll behavior */
+/* Smooth scroll behavior & prevent horizontal overflow */
 html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
+}
+
+body {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent images from causing horizontal overflow */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Ensure viewport width is respected */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
 }
 
 @keyframes fadeIn {

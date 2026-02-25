@@ -14,7 +14,8 @@ import {
     Package,
     ShieldCheck,
     PanelLeftClose,
-    PanelLeftOpen
+    PanelLeftOpen,
+    Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchReturnDetail, approveReturn, rejectReturn, processRefund, logout } from '../api/axios';
@@ -39,7 +40,7 @@ const ReturnDetail = () => {
     const [returnReq, setReturnReq] = useState(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
     useEffect(() => {
         loadDetail();
@@ -120,14 +121,15 @@ const ReturnDetail = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Returns" onLogout={logout} />
+            <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activePage="Returns" onLogout={logout} />
 
             <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 overflow-hidden ${!isDarkMode && 'bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff]'}`}>
                 {/* Header */}
-                <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white/80 border-slate-100 backdrop-blur-md shadow-sm'}`}>
+                <header className={`border-b px-4 sm:px-6 lg:px-8 h-14 sm:h-16 lg:h-20 flex items-center justify-between sticky top-0 z-20 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white/80 border-slate-100 backdrop-blur-md shadow-sm'}`}>
                     <div className="flex items-center gap-4">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-orange-600 shadow-sm'}`}>
-                            {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+                            <span className="md:hidden"><Menu className="w-5 h-5" /></span>
+                            <span className="hidden md:block">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}</span>
                         </button>
                         <div className={`w-px h-6 hidden sm:block mx-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`} />
                         <div className="flex items-center gap-4">
@@ -138,7 +140,7 @@ const ReturnDetail = () => {
                                 <ArrowLeft size={18} />
                             </button>
                             <div>
-                                <h1 className={`text-lg font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Return Dossier</h1>
+                                <h1 className={`text-sm sm:text-base lg:text-lg font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Return Dossier</h1>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] leading-none">Security Clearance: Verified</p>
                             </div>
                         </div>
@@ -150,7 +152,7 @@ const ReturnDetail = () => {
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
                     <div className="max-w-5xl mx-auto space-y-8 pb-32">
                         {/* Profile Section */}
                         <motion.div

@@ -38,12 +38,12 @@ export default function ProductCard({
             className="group bg-white rounded-3xl shadow-lg cursor-pointer h-full flex flex-col"
             onClick={() => navigate(`/product/${item.id}`)}
         >
-            <div className="relative h-64 overflow-hidden rounded-t-3xl bg-gray-50">
+            <div className="relative h-40 sm:h-52 md:h-64 overflow-hidden rounded-t-2xl sm:rounded-t-3xl bg-gray-50">
                 <AnimatePresence mode="wait">
                     <motion.img
                         key={displayImage}
                         src={displayImage}
-                        className="w-full h-full object-contain p-4"
+                        className="w-full h-full object-contain p-2 sm:p-4"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -56,7 +56,7 @@ export default function ProductCard({
                         e.stopPropagation();
                         handleWishlistClick(item);
                     }}
-                    className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-2 rounded-full shadow-md z-10 hover:bg-white transition-all"
+                    className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-white/80 backdrop-blur-md p-2 rounded-full shadow-md z-10 hover:bg-white transition-all min-w-[36px] min-h-[36px] sm:min-w-[40px] sm:min-h-[40px] flex items-center justify-center"
                 >
                     <FaHeart
                         className={isInWishlist(item.name) ? "text-red-500" : "text-gray-400"}
@@ -64,15 +64,15 @@ export default function ProductCard({
                 </button>
             </div>
 
-            <div className="p-5 flex flex-col flex-1">
+            <div className="p-3 sm:p-4 md:p-5 flex flex-col flex-1">
                 <div className="flex-1">
                     {/* Product Name */}
-                    <h3 className="font-bold text-lg text-gray-900 group-hover:text-orange-400 transition-colors line-clamp-1">
+                    <h3 className="font-bold text-sm sm:text-base md:text-lg text-gray-900 group-hover:text-orange-400 transition-colors line-clamp-1">
                         {item.name}
                     </h3>
 
                     {/* Rating Section */}
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-1 sm:gap-2 mt-1.5 sm:mt-2">
                         <div className="flex items-center gap-1 bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-100">
                             <span className="text-[11px] font-black text-orange-400">
                                 {Number(item.average_rating || 0).toFixed(1)}
@@ -90,7 +90,7 @@ export default function ProductCard({
                         </div>
                     </div>
 
-                    <p className="text-gray-500 text-sm line-clamp-2 mt-3">{item.description}</p>
+                    <p className="text-gray-500 text-xs sm:text-sm line-clamp-2 mt-2 sm:mt-3 hidden sm:block">{item.description}</p>
 
                     {/* Brand Badge - visible below description */}
                     {item.brand && (
@@ -106,17 +106,17 @@ export default function ProductCard({
                     )}
                 </div>
 
-                <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                <div className="flex justify-between items-center mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
                     <div className="flex flex-col">
-                        <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Price</span>
-                        <span className="font-black text-xl text-gray-900">₹{parseFloat(item.price).toFixed(2)}</span>
+                        <span className="text-[9px] sm:text-xs text-gray-400 font-bold uppercase tracking-wider">Price</span>
+                        <span className="font-black text-base sm:text-lg md:text-xl text-gray-900">₹{parseFloat(item.price).toFixed(2)}</span>
                     </div>
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             handleAddToCartClick(item);
                         }}
-                        className="bg-gradient-to-r from-orange-400 to-purple-500 text-white p-4 rounded-2xl hover:from-orange-600 hover:to-purple-700 transition-all shadow-lg active:scale-95"
+                        className="bg-gradient-to-r from-orange-400 to-purple-500 text-white p-3 sm:p-4 rounded-xl sm:rounded-2xl hover:from-orange-600 hover:to-purple-700 transition-all shadow-lg active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
                     >
                         <FaShoppingBag />
                     </button>

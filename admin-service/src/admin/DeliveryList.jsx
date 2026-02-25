@@ -12,20 +12,21 @@ import {
     Activity,
     Search,
     Filter,
-    ArrowUpRight
+    ArrowUpRight,
+    Menu
 } from 'lucide-react';
-import { fetchAllDeliveryAgents, blockDeliveryAgent, unblockDeliveryAgent } from '../api/axios';
+import { fetchAllDeliveryAgents, blockDeliveryAgent, unblockDeliveryAgent, logout } from '../api/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from '../components/NotificationBell';
-import { logout } from '../api/axios';
+
 
 const DeliveryList = () => {
     const navigate = useNavigate();
     const { isDarkMode } = useTheme();
     const [agents, setAgents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
     const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -43,6 +44,15 @@ const DeliveryList = () => {
 
     useEffect(() => {
         loadAgents();
+    }, []);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) setIsSidebarOpen(false);
+            else if (window.innerWidth >= 1024) setIsSidebarOpen(true);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     const handleBlockAction = async (id, isBlocked) => {
@@ -75,35 +85,34 @@ const DeliveryList = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar
-                isSidebarOpen={isSidebarOpen}
-                activePage="Delivery Agents"
+            <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activePage="Delivery Agents"
                 onLogout={logout}
             />
 
             <div className="flex-1 flex flex-col min-w-0">
-                <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
+                <header className={`border-b px-4 sm:px-6 lg:px-8 h-14 sm:h-16 lg:h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
                     <div className="flex items-center gap-4">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-blue-600 shadow-sm'}`}>
-                            {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+                            <span className="md:hidden"><Menu className="w-5 h-5" /></span>
+                            <span className="hidden md:block">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}</span>
                         </button>
                         <div>
-                            <h1 className={`text-lg font-bold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Logistics Fleet</h1>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-normal">Global Fulfillment Registry</p>
+                            <h1 className={`text-sm sm:text-base lg:text-lg font-bold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Logistics Fleet</h1>
+                            <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-normal hidden sm:block">Global Fulfillment Registry</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-6">
                         <NotificationBell />
-                        <div className={`hidden lg:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                        <div className={`hidden xl:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                             <Truck className="w-3.5 h-3.5" /> Fleet Ops Active
                         </div>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
                     <div className="max-w-7xl mx-auto space-y-8 pb-12">
                         {/* Stats Summary */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                             {[
                                 { label: 'Active Units', value: agents.filter(a => !a.is_blocked && a.approval_status === 'approved').length, icon: Truck, color: 'emerald' },
                                 { label: 'Total Fleet', value: agents.length, icon: Users, color: 'blue' },
@@ -129,7 +138,7 @@ const DeliveryList = () => {
                         </div>
 
                         {/* Toolbar */}
-                        <div className={`p-4 rounded-[2rem] border transition-all duration-300 flex flex-col md:flex-row gap-4 items-center ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
+                        <div className={`p-3 sm:p-4 rounded-2xl sm:rounded-[2rem] border transition-all duration-300 flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
                             <div className="relative flex-1 w-full">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                 <input

@@ -31,14 +31,14 @@ function Wishlist() {
   // RENDER
   // ============================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff] py-8 sm:py-12 px-3 sm:px-4 md:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">
             My Wishlist
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-base sm:text-xl text-gray-600">
             {wishlist.length} {wishlist.length === 1 ? 'item' : 'items'} saved
           </p>
           <div className="w-24 h-1 bg-gradient-to-r from-orange-500 to-purple-500 mx-auto mt-6 rounded-full"></div>
@@ -46,7 +46,7 @@ function Wishlist() {
 
         {/* Wishlist Items */}
         {wishlist && wishlist.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-8">
             {wishlist.map((item, index) => (
               <div
                 key={`${item.name}-${index}`}
@@ -54,7 +54,7 @@ function Wishlist() {
                 className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-orange-100 cursor-pointer"
               >
                 {/* Image Container */}
-                <div className="relative overflow-hidden bg-gradient-to-br from-orange-100 to-purple-100 h-48 flex items-center justify-center">
+                <div className="relative overflow-hidden bg-gradient-to-br from-orange-100 to-purple-100 h-36 sm:h-48 flex items-center justify-center">
                   <img
                     src={item.image}
                     alt={item.name}
@@ -67,31 +67,32 @@ function Wishlist() {
                 </div>
 
                 {/* Content */}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-orange-400 transition-colors duration-300">
+                <div className="p-3 sm:p-4 md:p-6">
+                  <h3 className="text-sm sm:text-base md:text-xl font-bold text-gray-900 mb-1 sm:mb-2 group-hover:text-orange-400 transition-colors duration-300 line-clamp-1">
                     {item.name}
                   </h3>
-                  <p className="text-gray-600 mb-4 line-clamp-2 text-sm leading-relaxed">
+                  <p className="text-gray-600 mb-2 sm:mb-4 line-clamp-2 text-xs sm:text-sm leading-relaxed hidden sm:block">
                     {item.description}
                   </p>
 
                   {/* Price */}
-                  <div className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-purple-500 bg-clip-text text-transparent mb-4">
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-orange-400 to-purple-500 bg-clip-text text-transparent mb-3 sm:mb-4">
                     ₹{item.price}
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-3">
+                  <div className="flex gap-2 sm:gap-3">
                     <button
-                      onClick={() => handleAddToCart(item)}
-                      className="flex-1 bg-gradient-to-r from-orange-400 to-purple-500 hover:from-orange-600 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 transform hover:scale-[1.02] active:scale-[0.98]"
+                      onClick={(e) => { e.stopPropagation(); handleAddToCart(item); }}
+                      className="flex-1 bg-gradient-to-r from-orange-400 to-purple-500 hover:from-orange-600 hover:to-purple-700 text-white font-semibold py-2 sm:py-2.5 px-2 sm:px-4 rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 transform hover:scale-[1.02] active:scale-[0.98] text-xs sm:text-sm min-h-[44px]"
                     >
-                      <FaShoppingCart />
-                      Add to Cart
+                      <FaShoppingCart size={14} />
+                      <span className="hidden sm:inline">Add to Cart</span>
+                      <span className="sm:hidden">Cart</span>
                     </button>
                     <button
-                      onClick={() => handleRemoveFromWishlist(item)}
-                      className="bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-2.5 px-4 rounded-xl transition-all duration-300 flex items-center justify-center transform hover:scale-[1.05] active:scale-[0.95]"
+                      onClick={(e) => { e.stopPropagation(); handleRemoveFromWishlist(item); }}
+                      className="bg-red-100 hover:bg-red-200 text-red-600 font-semibold py-2 sm:py-2.5 px-3 sm:px-4 rounded-lg sm:rounded-xl transition-all duration-300 flex items-center justify-center transform hover:scale-[1.05] active:scale-[0.95] min-w-[44px] min-h-[44px]"
                       title="Remove from wishlist"
                     >
                       <FaTrash />

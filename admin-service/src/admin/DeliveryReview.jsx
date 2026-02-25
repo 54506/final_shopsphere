@@ -5,7 +5,8 @@ import {
     ArrowLeft, CheckCircle, XCircle, Mail, Phone, MapPin,
     Calendar, ShieldCheck, User, FileText, AlertTriangle,
     Activity, Loader2, Truck, CreditCard, Landmark, ArrowUpRight,
-    ShieldAlert, Fingerprint, Banknote, MapPinned
+    ShieldAlert, Fingerprint, Banknote, MapPinned,
+    Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchDeliveryAgentDetail, approveDeliveryAgent, rejectDeliveryAgent, blockDeliveryAgent, unblockDeliveryAgent, logout } from '../api/axios';
@@ -29,7 +30,7 @@ const DeliveryReview = () => {
     const [agent, setAgent] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isActioning, setIsActioning] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
     useEffect(() => {
         const loadAgentData = async () => {
@@ -104,28 +105,28 @@ const DeliveryReview = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Delivery Agents" onLogout={logout} />
+            <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activePage="Delivery Agents" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0 relative">
-                <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
+                <header className={`border-b px-4 sm:px-6 lg:px-8 h-14 sm:h-16 lg:h-20 flex items-center justify-between sticky top-0 z-20 transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
                     <div className="flex items-center gap-4">
                         <button onClick={() => navigate('/delivery/requests')} className={`p-2 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-blue-600 shadow-sm'}`}>
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                         <div>
-                            <h1 className={`text-lg font-bold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Entity Dossier</h1>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-normal">Security Clearance Review</p>
+                            <h1 className={`text-sm sm:text-base lg:text-lg font-bold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Entity Dossier</h1>
+                            <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-normal hidden sm:block">Security Clearance Review</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-6">
                         <NotificationBell />
-                        <div className={`hidden lg:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
+                        <div className={`hidden xl:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
                             <ShieldAlert className="w-3.5 h-3.5" /> Compliance Pending
                         </div>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
                     <div className="max-w-5xl mx-auto space-y-8 pb-32">
                         {/* Profile Card */}
                         <motion.div

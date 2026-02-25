@@ -3,7 +3,7 @@ import {
     BarChart3, TrendingUp, Users, Store, ShoppingCart, ArrowDownRight,
     Calendar, ShieldCheck, PanelLeftClose, PanelLeftOpen, IndianRupee,
     CheckCircle, XCircle, RefreshCcw, Clock, UserCheck, Ban, Package,
-    Truck, Activity, AlertCircle,
+    Truck, Activity, AlertCircle, Menu,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
@@ -196,7 +196,7 @@ const CommissionReport = ({ data, isDark }) => (
 // ─────────────────────────────────────────────────
 const VendorReport = ({ data, isDark }) => (
     <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
             <StatCard label="Total Vendors" value={data.total_vendors} icon={Store} color="blue" isDark={isDark} />
             <StatCard label="Approved Partners" value={data.approved_vendors} icon={CheckCircle} color="emerald" isDark={isDark} />
             <StatCard label="Blocked Vendors" value={data.blocked_vendors} icon={Ban} color="rose" isDark={isDark} />
@@ -421,7 +421,7 @@ const TABS = [
 const Reports = () => {
     const { isDarkMode } = useTheme();
     const [activeReport, setActiveReport] = useState('Sales');
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
     const [reportData, setReportData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -441,6 +441,15 @@ const Reports = () => {
         }
     }, []);
 
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) setIsSidebarOpen(false);
+            else if (window.innerWidth >= 1024) setIsSidebarOpen(true);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     useEffect(() => { loadReports(); }, [loadReports]);
 
     const handleLogout = () => {
@@ -450,7 +459,7 @@ const Reports = () => {
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300
             ${isDarkMode ? 'bg-[#0f172a]' : 'bg-[#F8FAFC]'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Reports" onLogout={handleLogout} />
+            <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activePage="Reports" onLogout={handleLogout} />
 
             <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
                 {/* Header */}
@@ -461,7 +470,8 @@ const Reports = () => {
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                             className={`p-2 rounded-lg transition-all ${isDarkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500'}`}
                         >
-                            {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+                            <span className="md:hidden"><Menu className="w-5 h-5" /></span>
+                            <span className="hidden md:block">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}</span>
                         </button>
                         <div>
                             <div className="flex items-center gap-2">

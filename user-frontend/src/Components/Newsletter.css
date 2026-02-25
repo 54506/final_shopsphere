@@ -131,8 +131,21 @@
 }
 
 @media (max-width: 640px) {
+    .newsletter-section {
+        padding: 2rem 0.75rem;
+    }
+
+    .newsletter-card {
+        padding: 2.5rem 1.25rem;
+        border-radius: 1.5rem;
+    }
+
     .newsletter-title {
         font-size: 1.75rem;
+    }
+
+    .newsletter-subtitle {
+        font-size: 0.95rem;
     }
 
     .newsletter-input-group {
@@ -147,10 +160,13 @@
         background: rgba(255, 255, 255, 0.05);
         border-radius: 1rem;
         border: 1px solid rgba(255, 255, 255, 0.1);
+        min-height: 48px;
     }
 
     .newsletter-button {
         width: 100%;
         justify-content: center;
+        min-height: 48px;
+        padding: 0.875rem 1.5rem;
     }
 }
