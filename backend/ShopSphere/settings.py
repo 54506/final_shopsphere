@@ -5,7 +5,7 @@ Django settings for ShopSphere project.
 from pathlib import Path
 from datetime import timedelta
 import os
-import dj_database_url
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -72,13 +72,22 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ShopSphere.wsgi.application'
 
 # Database
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
-    )
-}
+_DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+
+if _DATABASE_URL:
+    # Production: PostgreSQL on Render with SSL
+    import dj_database_url as _dj
+    DATABASES = {
+        'default': _dj.parse(_DATABASE_URL, conn_max_age=600, ssl_require=True)
+    }
+else:
+    # Local development: SQLite (no DATABASE_URL needed)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
 
