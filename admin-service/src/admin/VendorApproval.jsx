@@ -17,7 +17,8 @@ import {
     SearchX,
     UserCheck,
     Users,
-    Zap
+    Zap,
+    Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/Sidebar';
@@ -34,7 +35,7 @@ const VendorApproval = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All Vendors');
 
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
     const [isActionModalOpen, setIsActionModalOpen] = useState(false);
     const [pendingAction, setPendingAction] = useState(null);
 
@@ -53,6 +54,15 @@ const VendorApproval = () => {
 
     useEffect(() => {
         loadVendors();
+    }, []);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) setIsSidebarOpen(false);
+            else if (window.innerWidth >= 1024) setIsSidebarOpen(true);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     const filteredVendors = useMemo(() => {
@@ -118,33 +128,34 @@ const VendorApproval = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Vendors" onLogout={logout} />
+            <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activePage="Vendors" onLogout={logout} />
 
             <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
-                <header className={`border-b px-8 h-20 flex items-center justify-between z-20 sticky top-0 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
-                    <div className="flex items-center gap-4">
+                <header className={`border-b px-4 sm:px-6 lg:px-8 h-14 sm:h-16 lg:h-20 flex items-center justify-between z-20 sticky top-0 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white border-slate-100 shadow-sm'}`}>
+                    <div className="flex items-center gap-2 sm:gap-4">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-blue-600 shadow-sm'}`}>
-                            {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+                            <span className="md:hidden"><Menu className="w-5 h-5" /></span>
+                            <span className="hidden md:block">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}</span>
                         </button>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h1 className={`text-lg font-semibold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Partner Registry</h1>
-                                <span className={`text-[8px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-normal ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>Synced</span>
+                                <h1 className={`text-sm sm:text-base lg:text-lg font-semibold tracking-normal ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Partner Registry</h1>
+                                <span className={`text-[8px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-normal hidden sm:inline-flex ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>Synced</span>
                             </div>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-normal">Global Merchant Lifecycle Management</p>
+                            <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-normal hidden sm:block">Global Merchant Lifecycle Management</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
                         <NotificationBell />
-                        <div className={`hidden lg:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                        <div className={`hidden xl:flex items-center border rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-normal gap-2 ${isDarkMode ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
                             <Users className="w-3.5 h-3.5" /> Core Node_02
                         </div>
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-transparent">
-                    <div className="max-w-7xl mx-auto space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 bg-transparent">
+                    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
                             {[
                                 { label: 'Total Partners', value: vendors.length, icon: Store, color: 'blue' },
                                 { label: 'Active Service', value: vendors.filter(v => v.approval_status === 'approved' && !v.is_blocked).length, icon: Activity, color: 'emerald' },
@@ -156,10 +167,10 @@ const VendorApproval = () => {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: i * 0.1 }}
-                                    className={`p-6 rounded-[2.5rem] border transition-all duration-300 group ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800 hover:border-slate-700 hover:bg-[#1e293b]/80' : 'bg-white border-slate-100 shadow-sm hover:shadow-xl'}`}
+                                    className={`p-4 sm:p-5 lg:p-6 rounded-2xl sm:rounded-[2.5rem] border transition-all duration-300 group ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800 hover:border-slate-700 hover:bg-[#1e293b]/80' : 'bg-white border-slate-100 shadow-sm hover:shadow-xl'}`}
                                 >
-                                    <div className="flex items-center gap-5">
-                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 ${stat.color === 'blue' ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') :
+                                    <div className="flex items-center gap-3 sm:gap-5">
+                                        <div className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 shrink-0 ${stat.color === 'blue' ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') :
                                             stat.color === 'emerald' ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600') :
                                                 stat.color === 'emerald' ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600') :
                                                     (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600')
@@ -175,7 +186,7 @@ const VendorApproval = () => {
                             ))}
                         </div>
 
-                        <div className={`p-4 rounded-[3rem] border transition-all duration-300 flex flex-col md:flex-row gap-4 items-center ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                        <div className={`p-3 sm:p-4 rounded-2xl sm:rounded-[3rem] border transition-all duration-300 flex flex-col md:flex-row gap-3 sm:gap-4 items-stretch md:items-center ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
                             <div className="relative flex-1 w-full group">
                                 <Search className={`absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isDarkMode ? 'text-slate-500 group-focus-within:text-blue-400' : 'text-slate-400 group-focus-within:text-blue-600'}`} />
                                 <input
@@ -207,7 +218,72 @@ const VendorApproval = () => {
                             </div>
                         </div>
 
-                        <div className={`rounded-[3rem] border overflow-hidden transition-all duration-300 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800 shadow-sm shadow-blue-500/5' : 'bg-white border-slate-100 shadow-md'}`}>
+                        {/* Mobile Card View */}
+                        <div className="block lg:hidden space-y-3">
+                            {isLoading ? (
+                                Array(3).fill(0).map((_, i) => (
+                                    <div key={i} className={`animate-pulse p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100'}`}>
+                                        <div className={`h-16 rounded-xl w-full ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`} />
+                                    </div>
+                                ))
+                            ) : filteredVendors.length > 0 ? (
+                                filteredVendors.map((vendor, index) => (
+                                    <motion.div
+                                        key={vendor.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        className={`p-4 rounded-2xl border transition-all ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}
+                                    >
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className={`w-10 h-10 rounded-xl border flex items-center justify-center font-semibold text-base shrink-0 ${isDarkMode ? 'bg-slate-900 border-slate-800 text-blue-400' : 'bg-white border-slate-100 text-blue-600'}`}>
+                                                {(vendor.shop_name || '?').charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className={`text-sm font-bold truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{vendor.shop_name}</div>
+                                                <div className="text-[10px] text-slate-500 font-semibold uppercase">VID #{vendor.id}</div>
+                                            </div>
+                                            <span className={`px-2 py-1 rounded-full text-[9px] font-semibold uppercase border shrink-0 ${getStatusColor(vendor)}`}>
+                                                {vendor.is_blocked ? 'Restricted' : vendor.approval_status}
+                                            </span>
+                                        </div>
+                                        <div className={`flex items-center gap-2 text-xs mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                                            <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                            <span className="truncate">{vendor.user_email}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <div className={`flex items-center gap-2 text-xs ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                                                <Clock className="w-3.5 h-3.5" /> {new Date(vendor.created_at).toLocaleDateString()}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button onClick={() => navigate(`/vendors/review/${vendor.id}`)} className={`p-2 rounded-xl transition-all border ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-400 shadow-sm'}`}>
+                                                    <ArrowRight className="w-4 h-4" />
+                                                </button>
+                                                {vendor.approval_status === 'approved' && !vendor.is_blocked && (
+                                                    <button onClick={() => handleActionClick(vendor, 'Block')} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-semibold uppercase border ${isDarkMode ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                                                        <Ban className="w-3 h-3" /> Block
+                                                    </button>
+                                                )}
+                                                {vendor.is_blocked && (
+                                                    <button onClick={() => handleActionClick(vendor, 'Unblock')} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-semibold uppercase border ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                                        <CheckCircle className="w-3 h-3" /> Restore
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center text-center py-12">
+                                    <SearchX className="w-12 h-12 text-slate-300 mb-4" />
+                                    <h3 className={`text-base font-bold mb-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Registry Empty</h3>
+                                    <p className="text-sm text-slate-400">No merchants matched the current filters.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Desktop Table View */}
+                        <div className={`hidden lg:block rounded-[3rem] border overflow-hidden transition-all duration-300 ${isDarkMode ? 'bg-[#1e293b]/50 border-slate-800 shadow-sm shadow-blue-500/5' : 'bg-white border-slate-100 shadow-md'}`}>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                     <thead className={`border-b transition-colors duration-300 ${isDarkMode ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
@@ -325,7 +401,7 @@ const VendorApproval = () => {
 
             <AnimatePresence>
                 {isActionModalOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
                         <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
@@ -335,7 +411,7 @@ const VendorApproval = () => {
                             initial={{ scale: 0.9, opacity: 0, y: 30 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 30 }}
-                            className={`rounded-[3rem] p-10 max-w-sm w-full relative z-10 shadow-2xl border transition-colors duration-300 ${isDarkMode ? 'bg-[#1e293b] border-slate-700 shadow-slate-950/50' : 'bg-white border-slate-100'}`}
+                            className={`rounded-2xl sm:rounded-[3rem] p-6 sm:p-10 max-w-sm w-full relative z-10 shadow-2xl border transition-colors duration-300 ${isDarkMode ? 'bg-[#1e293b] border-slate-700 shadow-slate-950/50' : 'bg-white border-slate-100'}`}
                         >
                             <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mb-10 border mx-auto ${pendingAction?.action === 'Block' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-emerald-500/10 border-emerald-500/20'}`}>
                                 <AlertTriangle className={`w-10 h-10 ${pendingAction?.action === 'Block' ? 'text-rose-500' : 'text-emerald-500'}`} />

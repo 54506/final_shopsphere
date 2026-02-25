@@ -8,7 +8,8 @@ import {
     XCircle,
     ArrowLeft,
     PanelLeftClose,
-    PanelLeftOpen
+    PanelLeftOpen,
+    Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchAdminReturns, logout } from '../api/axios';
@@ -31,10 +32,19 @@ const ReturnsManagement = () => {
     const { isDarkMode } = useTheme();
     const [returns, setReturns] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
     useEffect(() => {
         loadReturns();
+    }, []);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) setIsSidebarOpen(false);
+            else if (window.innerWidth >= 1024) setIsSidebarOpen(true);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
     const loadReturns = async () => {
@@ -52,28 +62,29 @@ const ReturnsManagement = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0f172a] text-slate-100' : 'bg-[#F8FAFC] text-slate-900'}`}>
-            <Sidebar isSidebarOpen={isSidebarOpen} activePage="Returns" onLogout={logout} />
+            <Sidebar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} activePage="Returns" onLogout={logout} />
 
             <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 overflow-hidden ${!isDarkMode && 'bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff]'}`}>
                 {/* Header */}
-                <header className={`border-b px-8 h-20 flex items-center justify-between sticky top-0 z-20 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white/80 border-slate-100 backdrop-blur-md shadow-sm'}`}>
-                    <div className="flex items-center gap-4">
+                <header className={`border-b px-4 sm:px-6 lg:px-8 h-14 sm:h-16 lg:h-20 flex items-center justify-between sticky top-0 z-20 transition-all duration-300 ${isDarkMode ? 'bg-[#0f172a]/80 border-slate-800 backdrop-blur-md' : 'bg-white/80 border-slate-100 backdrop-blur-md shadow-sm'}`}>
+                    <div className="flex items-center gap-2 sm:gap-4">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-orange-600 shadow-sm'}`}>
-                            {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+                            <span className="md:hidden"><Menu className="w-5 h-5" /></span>
+                            <span className="hidden md:block">{isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}</span>
                         </button>
-                        <div className={`w-px h-6 hidden sm:block mx-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`} />
+                        <div className={`w-px h-6 hidden md:block mx-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`} />
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => navigate('/dashboard')}
-                                className={`w-10 h-10 flex items-center justify-center border rounded-xl transition-all shadow-sm active:scale-95 ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-orange-600'}`}
+                                className={`w-10 h-10 flex items-center justify-center border rounded-xl transition-all shadow-sm active:scale-95 hidden sm:flex ${isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:text-orange-600'}`}
                             >
                                 <ArrowLeft size={18} />
                             </button>
                             <div>
-                                <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
-                                    Returns <span className="bg-orange-600/10 text-orange-600 px-2 py-0.5 rounded-md text-[9px] uppercase font-black">Portal</span>
+                                <h1 className="text-sm sm:text-base lg:text-xl font-black tracking-tight flex items-center gap-2">
+                                    Returns <span className="bg-orange-600/10 text-orange-600 px-2 py-0.5 rounded-md text-[9px] uppercase font-black hidden sm:inline">Portal</span>
                                 </h1>
-                                <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest leading-none">Manage platform reversal requests</p>
+                                <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest leading-none hidden sm:block">Manage platform reversal requests</p>
                             </div>
                         </div>
                     </div>
@@ -86,7 +97,7 @@ const ReturnsManagement = () => {
                     </button>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
                     <div className="max-w-4xl mx-auto">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center min-h-[400px]">
