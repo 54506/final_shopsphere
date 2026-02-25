@@ -7,9 +7,7 @@ from .api_views import (
     UserManagementView, UserBlockToggleView,
     TriggerAssignmentView, UnassignedOrdersView,
     AdminOrderTrackingViewSet, AdminOrderViewSet, DeletionRequestViewSet,
-    AdminLoginView, WhoAmIView, ContactQueryViewSet
-    AdminLoginView, WhoAmIView, ReturnManagementViewSet
-
+    AdminLoginView, WhoAmIView, ContactQueryViewSet, ReturnManagementViewSet,
 )
 
 router = DefaultRouter()

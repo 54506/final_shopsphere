@@ -99,11 +99,6 @@ const Footer = () => {
 
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 text-center md:text-left">
-                    <div className="flex flex-col items-center md:items-start">
-                        <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-orange-400 to-purple-400 bg-clip-text text-transparent">ShopSphere</h3>
-                        <p className="text-purple-300/70 text-sm leading-relaxed max-w-xs">Your one-stop shop for everything you need. Quality products, best prices.</p>
-
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-12">
                     <div>
                         <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-orange-400 to-purple-400 bg-clip-text text-transparent">ShopSphere</h3>
