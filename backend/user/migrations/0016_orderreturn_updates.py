@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('deliveryAgent', '0009_deliveryassignment_assignment_type_and_more'),
-        ('user', '0013_alter_review_options_review_updated_at_and_more'),
+        ('user', '0015_alter_address_id_alter_authuser_id_alter_cart_id_and_more'),
     ]
 
     operations = [
