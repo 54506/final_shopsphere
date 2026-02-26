@@ -3,6 +3,16 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
+from django.http import JsonResponse
+import os
+
+def debug_view(request):
+    return JsonResponse({
+        "status": "alive",
+        "host_header": request.get_host(),
+        "allowed_hosts": os.environ.get('ALLOWED_HOSTS', 'NOT_SET'),
+        "debug": os.environ.get('DEBUG', 'NOT_SET'),
+    })
 
 urlpatterns = [
     # JWT Token Refresh (used by frontend auto-refresh interceptor)
@@ -14,6 +24,7 @@ urlpatterns = [
 
     # Django Admin
     path('admin/', admin.site.urls),
+    path('debug-health/', debug_view),
     
     # Template-based views for each app
     path('vendor/', include('vendor.urls')),

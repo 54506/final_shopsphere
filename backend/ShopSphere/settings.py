@@ -245,23 +245,3 @@ EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-import os
-from django.contrib.auth import get_user_model
-
-def create_admin():
-    User = get_user_model()
-    admin_email = os.environ.get("ADMIN_EMAIL")
-    admin_password = os.environ.get("ADMIN_PASSWORD")
-
-    if admin_email and admin_password:
-        if not User.objects.filter(email=admin_email).exists():
-            User.objects.create_superuser(
-                username=admin_email,
-                email=admin_email,
-                password=admin_password
-            )
-
-try:
-    create_admin()
-except Exception:
-    pass

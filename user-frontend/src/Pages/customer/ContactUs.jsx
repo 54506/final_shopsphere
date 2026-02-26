@@ -183,8 +183,8 @@ const ContactUs = () => {
                                 type="submit"
                                 disabled={loading}
                                 className={`w-full flex items-center justify-center px-6 py-4 rounded-xl text-white font-bold text-lg transition-all ${loading
-                                        ? 'bg-blue-400 cursor-not-allowed'
-                                        : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-0.5'
+                                    ? 'bg-blue-400 cursor-not-allowed'
+                                    : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-0.5'
                                     }`}
                             >
                                 {loading ? (
