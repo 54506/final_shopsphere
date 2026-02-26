@@ -81,8 +81,7 @@ WSGI_APPLICATION = 'ShopSphere.wsgi.application'
 # Database
 _DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
 
-if _DATABASE_URL:
-    # Production: PostgreSQL on Render with SSL
+import dj_database_url
 
 DATABASES = {
     "default": dj_database_url.parse(
@@ -90,7 +89,6 @@ DATABASES = {
         conn_max_age=600,
         ssl_require=False
     )
-
 }
 else:
     # Local development: SQLite (no DATABASE_URL needed)
