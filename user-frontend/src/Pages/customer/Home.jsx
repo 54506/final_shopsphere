@@ -77,6 +77,20 @@ const BANNERS = [
   }
 ];
 
+const ProductSkeleton = () => (
+  <div className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex flex-col gap-4 animate-pulse">
+    <div className="w-full h-48 sm:h-64 bg-gray-200 rounded-2xl" />
+    <div className="space-y-3">
+      <div className="h-4 bg-gray-200 rounded w-3/4" />
+      <div className="h-3 bg-gray-100 rounded w-full" />
+      <div className="flex justify-between items-center pt-4">
+        <div className="h-6 bg-gray-200 rounded w-1/4" />
+        <div className="h-10 w-10 bg-gray-200 rounded-xl" />
+      </div>
+    </div>
+  </div>
+);
+
 // Collapsible section inside filter panel
 function FilterSection({ title, icon: Icon, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -158,6 +172,12 @@ const Home = () => {
 
   useEffect(() => {
     setSearchQuery(urlSearchQuery);
+    if (urlSearchQuery?.trim()) {
+      // Small timeout to ensure the DOM is ready if it was hidden
+      setTimeout(() => {
+        document.getElementById("products-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   }, [urlSearchQuery]);
 
   // Banner auto-rotate
@@ -264,84 +284,79 @@ const Home = () => {
     document.getElementById("products-section")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 border-4 border-orange-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-orange-400 font-bold animate-pulse">Loading amazing products...</p>
-        </div>
-      </div>
-    );
-  }
+  // No longer blocking with isLoading - show skeleton in grid instead
 
   const banner = BANNERS[currentBanner];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff]">
 
-      {/* ── HERO CAROUSEL ─────────────────────────────────────────────────────── */}
-      <section className="relative w-full h-[280px] sm:h-[350px] md:h-[450px] lg:h-[550px] overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentBanner}
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
-            className="absolute inset-0"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent z-10" />
-            <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 z-20 flex flex-col justify-center px-4 sm:px-8 md:px-16 lg:px-32">
+      {searchQuery === "" && (
+        <>
+          {/* ── HERO CAROUSEL ─────────────────────────────────────────────────────── */}
+          <section className="relative w-full h-[280px] sm:h-[350px] md:h-[450px] lg:h-[550px] overflow-hidden">
+            <AnimatePresence mode="wait">
               <motion.div
-                initial={{ x: -50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
-                className="max-w-3xl"
+                key={currentBanner}
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+                className="absolute inset-0"
               >
-                <p className="text-orange-400 font-black tracking-[0.2em] sm:tracking-[0.3em] uppercase text-[10px] sm:text-xs mb-2 sm:mb-4">{banner.subtitle}</p>
-                <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white mb-3 sm:mb-6 leading-tight">{banner.title}</h1>
-                <p className="text-gray-300 text-sm sm:text-base md:text-lg mb-4 sm:mb-8 max-w-xl leading-relaxed hidden sm:block">{banner.description}</p>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => document.getElementById("products-section")?.scrollIntoView({ behavior: "smooth" })}
-                  className={`group w-fit px-6 sm:px-10 py-3 sm:py-4 bg-gradient-to-r ${banner.color} text-white font-black text-sm sm:text-base rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 shadow-xl transition-all duration-300`}
-                >
-                  {banner.cta} <ArrowRight size={20} />
-                </motion.button>
+                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent z-10" />
+                <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 z-20 flex flex-col justify-center px-4 sm:px-8 md:px-16 lg:px-32">
+                  <motion.div
+                    initial={{ x: -50, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.8 }}
+                    className="max-w-3xl"
+                  >
+                    <p className="text-orange-400 font-black tracking-[0.2em] sm:tracking-[0.3em] uppercase text-[10px] sm:text-xs mb-2 sm:mb-4">{banner.subtitle}</p>
+                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black text-white mb-3 sm:mb-6 leading-tight">{banner.title}</h1>
+                    <p className="text-gray-300 text-sm sm:text-base md:text-lg mb-4 sm:mb-8 max-w-xl leading-relaxed hidden sm:block">{banner.description}</p>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => document.getElementById("products-section")?.scrollIntoView({ behavior: "smooth" })}
+                      className={`group w-fit px-6 sm:px-10 py-3 sm:py-4 bg-gradient-to-r ${banner.color} text-white font-black text-sm sm:text-base rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 shadow-xl transition-all duration-300`}
+                    >
+                      {banner.cta} <ArrowRight size={20} />
+                    </motion.button>
+                  </motion.div>
+                </div>
               </motion.div>
+            </AnimatePresence>
+
+            {/* Banner progress dots */}
+            <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2 sm:gap-3 p-2 sm:p-3 bg-black/20 backdrop-blur-xl rounded-full border border-white/10">
+              {BANNERS.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentBanner(idx)}
+                  className={`h-1.5 rounded-full transition-all duration-700 ${currentBanner === idx ? "w-10 bg-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.5)]" : "w-1.5 bg-white/40 hover:bg-white/60"}`}
+                />
+              ))}
             </div>
-          </motion.div>
-        </AnimatePresence>
+          </section>
 
-        {/* Banner progress dots */}
-        <div className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2 sm:gap-3 p-2 sm:p-3 bg-black/20 backdrop-blur-xl rounded-full border border-white/10">
-          {BANNERS.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentBanner(idx)}
-              className={`h-1.5 rounded-full transition-all duration-700 ${currentBanner === idx ? "w-10 bg-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.5)]" : "w-1.5 bg-white/40 hover:bg-white/60"}`}
-            />
-          ))}
-        </div>
-      </section>
+          {/* ── TRENDING ──────────────────────────────────────────────────────────── */}
+          <TrendingProducts
+            navigate={navigate}
+            handleWishlistClick={handleWishlistClick}
+            handleAddToCartClick={handleAddToCartClick}
+            handleBuyNow={handleBuyNow}
+            isInWishlist={isInWishlist}
+          />
 
-      {/* ── TRENDING ──────────────────────────────────────────────────────────── */}
-      <TrendingProducts
-        navigate={navigate}
-        handleWishlistClick={handleWishlistClick}
-        handleAddToCartClick={handleAddToCartClick}
-        handleBuyNow={handleBuyNow}
-        isInWishlist={isInWishlist}
-      />
+          {/* ── BEST VALUE DEALS ─────────────────────────────────────────────────── */}
+          <BestValueDeals />
 
-      {/* ── BEST VALUE DEALS ─────────────────────────────────────────────────── */}
-      <BestValueDeals />
-
-      {/* ── MOST SEARCHED ─────────────────────────────────────────────────── */}
-      <MostSearched />
+          {/* ── MOST SEARCHED ─────────────────────────────────────────────────── */}
+          <MostSearched />
+        </>
+      )}
 
       {/* ── PRODUCTS SECTION ──────────────────────────────────────────────────── */}
       <section id="products-section" className="max-w-[1600px] mx-auto px-3 sm:px-6 md:px-12 py-8 sm:py-12 md:py-16">
@@ -445,17 +460,21 @@ const Home = () => {
 
         {/* Product grid */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
-          {currentProducts.map((item) => (
-            <ProductCard
-              key={item.id}
-              item={item}
-              navigate={navigate}
-              handleWishlistClick={handleWishlistClick}
-              handleAddToCartClick={handleAddToCartClick}
-              handleBuyNow={handleBuyNow}
-              isInWishlist={isInWishlist}
-            />
-          ))}
+          {isLoading && filteredProducts.length === 0 ? (
+            Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i} />)
+          ) : (
+            currentProducts.map((item) => (
+              <ProductCard
+                key={item.id}
+                item={item}
+                navigate={navigate}
+                handleWishlistClick={handleWishlistClick}
+                handleAddToCartClick={handleAddToCartClick}
+                handleBuyNow={handleBuyNow}
+                isInWishlist={isInWishlist}
+              />
+            ))
+          )}
         </div>
 
         {/* Empty state */}
@@ -494,8 +513,13 @@ const Home = () => {
         )}
       </section>
 
-      {/* ── DISCOVERY & NEWSLETTER ────────────────────────────────────────────── */}
-      <DiscoverySection />
+      {searchQuery === "" && (
+        <>
+          {/* ── DISCOVERY & NEWSLETTER ────────────────────────────────────────────── */}
+          <DiscoverySection />
+          <Newsletter />
+        </>
+      )}
 
       {/* ══ FILTER DRAWER OVERLAY ═══════════════════════════════════════════════ */}
       <AnimatePresence>

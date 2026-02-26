@@ -437,10 +437,13 @@ def serve_product_image(request, image_id):
     if not product_image.image_data:
         return Response({'error': 'Image data not found in database'}, status=status.HTTP_404_NOT_FOUND)
     
-    return HttpResponse(
+    response = HttpResponse(
         product_image.image_data,
         content_type=product_image.image_mimetype or 'image/jpeg'
     )
+    # Cache for 30 days - these are product images, they don't change often
+    response['Cache-Control'] = 'public, max-age=2592000'
+    return response
 
 
 class VendorInvoiceAPIView(generics.GenericAPIView):
