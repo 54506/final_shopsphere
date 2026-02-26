@@ -84,8 +84,12 @@ if _DATABASE_URL:
     # Production: PostgreSQL on Render with SSL
     import dj_database_url as _dj
     DATABASES = {
-        'default': _dj.parse(_DATABASE_URL, conn_max_age=600, ssl_require=True)
-    }
+    'default': _dj.parse(
+        _DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=False
+    )
+}
 else:
     # Local development: SQLite (no DATABASE_URL needed)
     DATABASES = {
@@ -216,6 +220,7 @@ CSRF_TRUSTED_ORIGINS = list(set([
     "http://127.0.0.1:5174",
     "http://127.0.0.1:5175",
     "https://shop-sphere-admin-ndy9.vercel.app",
+    "https://final-shopsphere-8v1c.onrender.com",
 ] + _extra_cors))
 
 
