@@ -15,7 +15,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-r91l8)q8sv%mg9mem%^em
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+# ALLOWED_HOSTS configuration
+_allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', '*')
+if not _allowed_hosts_env or _allowed_hosts_env == '*':
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
+    ALLOWED_HOSTS.extend(['.onrender.com', 'localhost', '127.0.0.1'])
 
 # Application definition
 INSTALLED_APPS = [
@@ -90,6 +96,8 @@ else:
     }
 
 SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
+# Honor the 'X-Forwarded-Proto' header for request.is_secure()
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -149,8 +157,9 @@ REST_FRAMEWORK = {
 
 # JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('ACCESS_TOKEN_LIFETIME_MINUTES', 60))),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.environ.get('REFRESH_TOKEN_LIFETIME_DAYS', 7))),
+    'SIGNING_KEY': os.environ.get('JWT_SIGNING_KEY', SECRET_KEY),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -195,7 +204,6 @@ _default_cors = [
 ]
 
 # In production, set CORS_ALLOWED_ORIGINS env var as comma-separated URLs
-# e.g. CORS_ALLOWED_ORIGINS=https://shopsphere.vercel.app,https://admin.vercel.app
 _env_cors = os.environ.get('CORS_ALLOWED_ORIGINS', '')
 _extra_cors = [u.strip() for u in _env_cors.split(',') if u.strip()]
 CORS_ALLOWED_ORIGINS = list(set(_default_cors + _extra_cors))
@@ -229,3 +237,24 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+import os
+from django.contrib.auth import get_user_model
+
+def create_admin():
+    User = get_user_model()
+    admin_email = os.environ.get("ADMIN_EMAIL")
+    admin_password = os.environ.get("ADMIN_PASSWORD")
+
+    if admin_email and admin_password:
+        if not User.objects.filter(email=admin_email).exists():
+            User.objects.create_superuser(
+                username=admin_email,
+                email=admin_email,
+                password=admin_password
+            )
+
+try:
+    create_admin()
+except Exception:
+    pass
