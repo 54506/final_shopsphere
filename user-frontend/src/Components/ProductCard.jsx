@@ -39,12 +39,12 @@ export default function ProductCard({
             className="group bg-white rounded-3xl shadow-lg cursor-pointer h-full flex flex-col"
             onClick={() => navigate(`/product/${item.id}`)}
         >
-            <div className="relative h-40 sm:h-52 md:h-64 overflow-hidden rounded-t-2xl sm:rounded-t-3xl bg-gray-50">
+            <div className="relative h-40 sm:h-48 md:h-56 overflow-hidden rounded-t-2xl sm:rounded-t-3xl bg-gray-50 flex items-center justify-center p-3">
                 <AnimatePresence mode="wait">
                     <motion.img
                         key={displayImage}
                         src={displayImage}
-                        className="w-full h-full object-contain p-2 sm:p-4"
+                        className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-110"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -65,10 +65,10 @@ export default function ProductCard({
                 </button>
             </div>
 
-            <div className="p-3 sm:p-4 md:p-5 flex flex-col flex-1">
+            <div className="p-3 sm:p-4 flex flex-col flex-1">
                 <div className="flex-1">
                     {/* Product Name */}
-                    <h3 className="font-bold text-sm sm:text-base md:text-lg text-gray-900 group-hover:text-orange-400 transition-colors line-clamp-1">
+                    <h3 className="font-bold text-sm sm:text-base md:text-lg text-gray-900 group-hover:text-orange-400 transition-colors line-clamp-1 leading-tight">
                         {item.name}
                     </h3>
 
@@ -91,7 +91,7 @@ export default function ProductCard({
                         </div>
                     </div>
 
-                    <p className="text-gray-500 text-xs sm:text-sm line-clamp-1 mt-2 sm:mt-3">{item.description}</p>
+                    <p className="text-gray-500 text-[10px] sm:text-xs line-clamp-1 mt-1 sm:mt-1.5 leading-tight">{item.description}</p>
 
                     {/* Brand Badge - visible below description */}
                     {item.brand && (

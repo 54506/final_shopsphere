@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { forgotPassword } from "../../api/axios";
-
 import toast from "react-hot-toast";
+import emailjs from "@emailjs/browser";
 
 function ForgotPassword() {
     const [email, setEmail] = useState("");
@@ -12,6 +12,7 @@ function ForgotPassword() {
         setLoading(true);
 
         try {
+            // 1. Call backend to generate token and link
             const res = await forgotPassword(email);
             toast.success(res.message || "Reset link sent to your email");
             setEmail("");

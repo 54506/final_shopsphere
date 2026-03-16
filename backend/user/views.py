@@ -256,10 +256,14 @@ def home_api(request):
 
     from django.db.models import Avg
     # Base query with annotation to avoid N+1 queries for ratings
+    from django.db.models import Avg, Count
     products_qs = Product.objects.filter(
         status__in=['active', 'approved'],
         is_blocked=False
-    ).select_related('vendor').prefetch_related('images').order_by('-id')
+    ).select_related('vendor').prefetch_related('images').annotate(
+        avg_rating=Avg('reviews__rating'),
+        count_reviews=Count('reviews')
+    ).order_by('-id')
 
     # Optional category filtering  (frontend may send display names like 'Home & Kitchen')
     CATEGORY_MAP = {
@@ -1042,7 +1046,7 @@ def get_trending_products(request):
         status__in=['active', 'approved'],
         is_blocked=False,
         average_rating__gt=3
-    ).order_by('-search_count', '-total_reviews', '-average_rating')[:12]
+    ).select_related('vendor').prefetch_related('images').order_by('-search_count', '-total_reviews', '-average_rating')[:12]
     
     serializer = ProductSerializer(trending, many=True, context={'request': request})
     data = serializer.data

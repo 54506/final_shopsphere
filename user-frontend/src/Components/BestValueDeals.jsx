@@ -123,11 +123,11 @@ const BestValueDeals = () => {
                             onClick={() => handleProductClick(deal.id)}
                             className="flex-shrink-0 w-[170px] sm:w-[220px] md:w-[260px] bg-white rounded-[20px] sm:rounded-[28px] overflow-hidden shadow-lg shadow-blue-900/5 group border border-white hover:border-blue-200 transition-all duration-300 cursor-pointer flex flex-col snap-start"
                         >
-                            <div className="relative h-36 sm:h-48 bg-[#f8fbff] flex items-center justify-center p-3 sm:p-4 overflow-hidden">
+                            <div className="relative h-32 sm:h-40 bg-white overflow-hidden flex items-center justify-center p-3">
                                 <img
                                     src={deal.image}
                                     alt={deal.title}
-                                    className="max-h-full max-w-full object-contain transition-all duration-700 group-hover:scale-110 drop-shadow-xl"
+                                    className="max-h-full max-w-full object-contain transition-all duration-700 group-hover:scale-110 drop-shadow-md"
                                 />
                                 <div className="absolute top-3 left-3 z-20">
                                     <span className="bg-blue-600/90 backdrop-blur-sm text-white text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-sm">
@@ -138,7 +138,7 @@ const BestValueDeals = () => {
                             </div>
                             <div className="p-3 sm:p-5 space-y-1 sm:space-y-1.5 flex-grow flex flex-col">
                                 <p className="text-blue-500 font-bold text-[9px] uppercase tracking-tight">{deal.vendor}</p>
-                                <h3 className="text-slate-800 font-bold text-xs tracking-tight leading-snug group-hover:text-blue-600 transition-colors line-clamp-2 h-8">
+                                <h3 className="text-slate-800 font-bold text-xs tracking-tight leading-tight group-hover:text-blue-600 transition-colors line-clamp-1 h-4 mt-1">
                                     {deal.title}
                                 </h3>
                                 <div className="mt-auto pt-3 flex items-center justify-between">

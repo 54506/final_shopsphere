@@ -67,7 +67,7 @@ const productsSlice = createSlice({
     automotive: [],
     services: [],
     other: [],
-    all: [],
+    all: loadFromStorage('products_all'), // ✅ Load cached products
     isLoading: false,
     error: null,
   },
@@ -305,6 +305,9 @@ store.subscribe(() => {
   const state = store.getState();
   saveToStorage('cart', state.cart);
   saveToStorage('wishlist', state.wishlist);
+  if (state.products.all.length > 0) {
+    saveToStorage('products_all', state.products.all);
+  }
 });
 
 export default store;

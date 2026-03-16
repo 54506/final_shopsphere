@@ -285,7 +285,7 @@ function Profile() {
     // MAIN RENDER
     // ============================================
     return (
-        <div className="min-h-screen bg-gray-50/50 pt-12 pb-24">
+        <div className="min-h-screen bg-gradient-to-br from-[#fff5f5] via-[#fef3f2] to-[#f3e8ff] pt-12 pb-24">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex flex-col lg:flex-row gap-10 items-start">
 

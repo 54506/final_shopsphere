@@ -5,7 +5,7 @@ Django settings for ShopSphere project.
 from pathlib import Path
 from datetime import timedelta
 import os
-
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -16,7 +16,13 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-r91l8)q8sv%mg9mem%^em
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+# ALLOWED_HOSTS configuration
+_allowed_hosts_env = os.environ.get('ALLOWED_HOSTS', '*')
+if not _allowed_hosts_env or _allowed_hosts_env == '*':
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
+    ALLOWED_HOSTS.extend(['.onrender.com', 'localhost', '127.0.0.1'])
 
 # Application definition
 INSTALLED_APPS = [
@@ -29,6 +35,7 @@ INSTALLED_APPS = [
     
     # Third-party apps
     'rest_framework',
+    'rest_framework_simplejwt',
     'rest_framework.authtoken',
     'corsheaders',
     
@@ -74,22 +81,18 @@ WSGI_APPLICATION = 'ShopSphere.wsgi.application'
 # Database
 _DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
 
-if _DATABASE_URL:
-    # Production: PostgreSQL on Render with SSL
-    import dj_database_url as _dj
-    DATABASES = {
-        'default': _dj.parse(_DATABASE_URL, conn_max_age=600, ssl_require=True)
-    }
-else:
-    # Local development: SQLite (no DATABASE_URL needed)
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+DATABASES = {
+    "default": dj_database_url.parse(
+        os.environ.get("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=False
+    )
+}
+
 
 SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
+# Honor the 'X-Forwarded-Proto' header for request.is_secure()
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -149,13 +152,36 @@ REST_FRAMEWORK = {
 
 # JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('ACCESS_TOKEN_LIFETIME_MINUTES', 60))),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.environ.get('REFRESH_TOKEN_LIFETIME_DAYS', 7))),
+    'SIGNING_KEY': os.environ.get('JWT_SIGNING_KEY', SECRET_KEY),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
 # CORS Configuration
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True 
+
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 
 # Default local origins for development
 _default_cors = [
@@ -169,10 +195,10 @@ _default_cors = [
     "http://127.0.0.1:5175",
     "http://127.0.0.1:5176",
     "http://127.0.0.1:5177",
+    "https://shop-sphere-admin-ndy9.vercel.app",
 ]
 
 # In production, set CORS_ALLOWED_ORIGINS env var as comma-separated URLs
-# e.g. CORS_ALLOWED_ORIGINS=https://shopsphere.vercel.app,https://admin.vercel.app
 _env_cors = os.environ.get('CORS_ALLOWED_ORIGINS', '')
 _extra_cors = [u.strip() for u in _env_cors.split(',') if u.strip()]
 CORS_ALLOWED_ORIGINS = list(set(_default_cors + _extra_cors))
@@ -184,6 +210,8 @@ CSRF_TRUSTED_ORIGINS = list(set([
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
     "http://127.0.0.1:5175",
+    "https://shop-sphere-admin-ndy9.vercel.app",
+    "https://final-shopsphere-8v1c.onrender.com",
 ] + _extra_cors))
 
 
@@ -198,11 +226,11 @@ APPEND_SLASH = True
 # Email Configuration — credentials from environment variables
 import ssl
 EMAIL_SSL_KEYFILE = None
-
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'nandhuuppalapati@gmail.com')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'jzfc arto roxz wgwj')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+

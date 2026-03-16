@@ -20,7 +20,6 @@ const StatCard = ({ label, value, icon: Icon, color, prefix = '', sub = '', isDa
         emerald: { bg: isDark ? 'bg-emerald-500/10' : 'bg-emerald-50', text: 'text-emerald-400' },
         amber: { bg: isDark ? 'bg-amber-500/10' : 'bg-amber-50', text: 'text-amber-400' },
         rose: { bg: isDark ? 'bg-rose-500/10' : 'bg-rose-50', text: 'text-rose-400' },
-        emerald: { bg: isDark ? 'bg-emerald-500/10' : 'bg-emerald-50', text: 'text-emerald-400' },
         sky: { bg: isDark ? 'bg-sky-500/10' : 'bg-sky-50', text: 'text-sky-400' },
     };
     const c = colorMap[color] || colorMap.blue;
