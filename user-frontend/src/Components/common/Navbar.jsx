@@ -95,13 +95,19 @@ function Navbar() {
     useEffect(() => {
         setIsOpen(false);
         setProfileDropdownOpen(false);
-        setMobileSearchOpen(false);
         setMobileCategoriesOpen(false);
+
+        // Only close mobile search if we navigate to a different page
+        // No longer closing it here to allow typing without jitter
 
         // Sync search query from URL
         const params = new URLSearchParams(location.search);
         const q = params.get("search") || "";
-        setSearchQuery(q);
+        // Only update if it's different and we are not currently typing (actually, simpler to just update if it's different)
+        setSearchQuery(prev => {
+            if (prev.trim() === q.trim()) return prev;
+            return q;
+        });
     }, [location.pathname, location.search]);
 
     // Lock body scroll when mobile menu is open
@@ -127,10 +133,23 @@ function Navbar() {
     const handleSearchChange = (e) => {
         const value = e.target.value;
         setSearchQuery(value);
+
+        // Update URL to sync with search
         if (value.trim()) {
-            navigate(`/home?search=${encodeURIComponent(value.trim())}`, { replace: true });
+            navigate(`/home?search=${encodeURIComponent(value)}`, { replace: true });
         } else {
             navigate('/home', { replace: true });
+        }
+    };
+
+    const handleSearchSubmit = (e) => {
+        if (e) e.preventDefault();
+        if (searchQuery.trim()) {
+            navigate(`/home?search=${encodeURIComponent(searchQuery.trim())}`);
+            setMobileSearchOpen(false);
+            setSearchFocused(false);
+            const input = document.activeElement;
+            if (input) input.blur();
         }
     };
 
@@ -245,7 +264,7 @@ function Navbar() {
                                     </div>
                                 </div>
 
-                                <div className="relative w-full group">
+                                <form onSubmit={handleSearchSubmit} className="relative w-full group">
                                     <div className={`absolute inset-0 bg-gradient-to-r from-orange-400 to-purple-500 rounded-xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300 ${searchFocused ? 'opacity-60' : ''}`} />
                                     <input
                                         type="text"
@@ -256,18 +275,20 @@ function Navbar() {
                                         onBlur={() => setSearchFocused(false)}
                                         className={`relative w-full pl-11 pr-24 py-2.5 rounded-xl text-sm transition-all duration-300 ease-out outline-none border font-medium ${searchFocused ? "bg-white border-white text-gray-900 ring-4 ring-orange-500/20" : "bg-white/20 border-white/20 text-white placeholder-white/70 hover:bg-white/30 hover:border-white/40"} backdrop-blur-md`}
                                     />
-                                    <FaSearch className={`absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300 ${searchFocused ? "text-orange-500" : "text-white"} z-10`} size={16} />
+                                    <button type="submit" className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
+                                        <FaSearch className={`transition-all duration-300 ${searchFocused ? "text-orange-500" : "text-white"}`} size={16} />
+                                    </button>
                                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
                                         {searchQuery && (
-                                            <button onClick={handleClearSearch} className="p-1.5 text-orange-300 hover:text-white">
+                                            <button type="button" onClick={handleClearSearch} className="p-1.5 text-orange-300 hover:text-white">
                                                 <FaTimes size={12} />
                                             </button>
                                         )}
-                                        <button onClick={toggleListening} className={`p-1.5 rounded-lg ${isListening ? "text-red-500 bg-red-400/10 animate-pulse" : "text-white/80"}`}>
+                                        <button type="button" onClick={toggleListening} className={`p-1.5 rounded-lg ${isListening ? "text-red-500 bg-red-400/10 animate-pulse" : "text-white/80"}`}>
                                             <FaMicrophone size={15} />
                                         </button>
                                     </div>
-                                </div>
+                                </form>
                             </div>
                         </div>
 
@@ -321,7 +342,7 @@ function Navbar() {
             {/* ── Mobile Search Bar (slides down below navbar) ── */}
             <div className={`md:hidden fixed top-[60px] left-0 right-0 z-40 transition-all duration-300 ease-out ${mobileSearchOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
                 <div className="bg-gradient-to-r from-[#fb923c] via-[#c084fc] to-[#a78bfa] px-3 pb-3 pt-1 shadow-lg">
-                    <div className="relative w-full">
+                    <form onSubmit={handleSearchSubmit} className="relative w-full">
                         <input
                             type="text"
                             placeholder="Search products, brands..."
@@ -330,18 +351,20 @@ function Navbar() {
                             className="w-full pl-10 pr-20 py-3 rounded-xl text-sm bg-white border border-white text-gray-900 outline-none font-medium placeholder-gray-400"
                             autoFocus={mobileSearchOpen}
                         />
-                        <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-orange-500 z-10" size={14} />
+                        <button type="submit" className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10">
+                            <FaSearch className="text-orange-500" size={14} />
+                        </button>
                         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
                             {searchQuery && (
-                                <button onClick={handleClearSearch} className="p-2 text-gray-400 hover:text-gray-600 min-w-[36px] min-h-[36px] flex items-center justify-center">
+                                <button type="button" onClick={handleClearSearch} className="p-2 text-gray-400 hover:text-gray-600 min-w-[36px] min-h-[36px] flex items-center justify-center">
                                     <FaTimes size={12} />
                                 </button>
                             )}
-                            <button onClick={toggleListening} className={`p-2 rounded-lg min-w-[36px] min-h-[36px] flex items-center justify-center ${isListening ? "text-red-500 bg-red-50 animate-pulse" : "text-gray-400"}`}>
+                            <button type="button" onClick={toggleListening} className={`p-2 rounded-lg min-w-[36px] min-h-[36px] flex items-center justify-center ${isListening ? "text-red-500 bg-red-50 animate-pulse" : "text-gray-400"}`}>
                                 <FaMicrophone size={14} />
                             </button>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
 

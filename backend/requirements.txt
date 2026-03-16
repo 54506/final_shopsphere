@@ -1,0 +1,8 @@
+django>=3.2
+djangorestframework
+django-cors-headers
+djangorestframework-simplejwt
+Pillow
+whitenoise
+dj-database-url
+gunicorn

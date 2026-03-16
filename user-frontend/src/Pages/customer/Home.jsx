@@ -147,7 +147,11 @@ const Home = () => {
     const term = urlSearchQuery?.trim().toLowerCase();
     if (term && term.length > 2) {
       // 1. Backend tracking
-      getProducts({ search: term });
+      try {
+        getProducts({ search: term });
+      } catch (err) {
+        console.error("Search tracking failed", err);
+      }
 
       // 2. Local frequency tracking for personal relevance
       const history = JSON.parse(localStorage.getItem('recentSearchFreq') || "{}");
@@ -158,6 +162,7 @@ const Home = () => {
 
   useEffect(() => {
     setSearchQuery(urlSearchQuery);
+    setCurrentPage(1); // Reset to first page whenever search updates
   }, [urlSearchQuery]);
 
   // Banner auto-rotate
@@ -203,12 +208,13 @@ const Home = () => {
       const matchPrice = !priceRange || priceRange.id === "all"
         ? true
         : item.price >= priceRange.min && item.price <= priceRange.max;
-      const matchSearch = !searchQuery
+      const term = searchQuery.trim().toLowerCase();
+      const matchSearch = !term
         ? true
-        : item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.category_display && item.category_display.toLowerCase().includes(searchQuery.toLowerCase()));
+        : (item.name?.toLowerCase().includes(term) ||
+          item.description?.toLowerCase().includes(term) ||
+          item.category?.toLowerCase().includes(term) ||
+          (item.category_display && item.category_display.toLowerCase().includes(term)));
       return matchCat && matchBrand && matchPrice && matchSearch;
     });
   }, [allProducts, selectedCategory, selectedPriceRange, selectedBrand, searchQuery]);
@@ -371,8 +377,8 @@ const Home = () => {
                   setCurrentPage(1);
 
                   // Update URL so it's globally synced
-                  if (val.trim()) {
-                    navigate(`/home?search=${encodeURIComponent(val.trim())}`, { replace: true });
+                  if (val) {
+                    navigate(`/home?search=${encodeURIComponent(val)}`, { replace: true });
                   } else {
                     navigate('/home', { replace: true });
                   }
