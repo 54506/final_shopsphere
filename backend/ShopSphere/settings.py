@@ -81,13 +81,21 @@ WSGI_APPLICATION = 'ShopSphere.wsgi.application'
 # Database
 _DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
 
-DATABASES = {
-    "default": dj_database_url.parse(
-        os.environ.get("DATABASE_URL"),
-        conn_max_age=600,
-        ssl_require=False
-    )
-}
+if _DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            _DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=False
+        )
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False').lower() == 'true'
